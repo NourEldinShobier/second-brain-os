@@ -1,0 +1,10 @@
+node_modules/
+personal/
+.cursor/
+.claude/
+dist/
+*.tsbuildinfo
+coverage/
+.env
+.env.*
+!.env.example

@@ -1,0 +1,39 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`JsonEnvelope > matches snapshot for contract regression (update intentionally when schema changes) > error 1`] = `
+{
+  "data": null,
+  "errors": [
+    {
+      "code": "VALIDATION",
+      "message": "bad input",
+    },
+  ],
+  "next_actions": [
+    "fix and retry",
+  ],
+  "ok": false,
+  "schema_version": "1.0.0",
+  "warnings": [],
+}
+`;
+
+exports[`JsonEnvelope > matches snapshot for contract regression (update intentionally when schema changes) > success 1`] = `
+{
+  "data": {
+    "sample": true,
+  },
+  "errors": [],
+  "next_actions": [
+    "next",
+  ],
+  "ok": true,
+  "schema_version": "1.0.0",
+  "warnings": [
+    {
+      "code": "demo",
+      "message": "optional warning",
+    },
+  ],
+}
+`;
