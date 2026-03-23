@@ -39,4 +39,4 @@ Prepare the follow-up backlog for the `second-brain` skill so it can wrap the CL
 - Review the resulting skill backlog against the PRD rule that the skill must orchestrate the CLI.
 - Confirm the evaluation plan covers dashboard retrieval, inbox processing, query commands, and common CLI errors.
 
-**Shipped:** Draft skill at `.cursor/skills/second-brain-os/` (`SKILL.md`, `references/`, `evals/evals.json`). Run the skill-creator eval loop (with-skill vs without-skill, aggregate benchmark) when you want measured scores.
+**Shipped:** Draft **`second-brain-os`** skill pack (`SKILL.md`, `references/`, `evals/evals.json`), installable under whatever directory your AI/IDE expects (e.g. Cursor-style `.cursor/skills/second-brain-os/`). Run the skill-creator eval loop (with-skill vs without-skill, aggregate benchmark) when you want measured scores.

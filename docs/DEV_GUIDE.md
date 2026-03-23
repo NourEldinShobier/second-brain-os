@@ -130,12 +130,13 @@ Full checklist and notes (scoped names, native module): **[README.md § Publishi
 
 ---
 
-## 10. Cursor skills and internal references
+## 10. Agent skills and internal references
 
-- **Product skill:** `.cursor/skills/second-brain-os/` — agent guidance for CLI-first vault workflows.
-- **Second Brain OS Dev (maintainer skill):** `.cursor/skills/second-brain-os-dev/` — scripts, `dev:run`, pre-publish checks, keeping `DEV_GUIDE` and `version.ts` aligned.
-- **Skill tooling:** `.cursor/skills/skill-creator/` — evals and benchmarks for skills.
-- **CLI contract (stable table):** `.cursor/skills/second-brain-os/references/cli-contract.md`.
+Optional **instruction packs** for AI assistants (see [USER_GUIDE §11](USER_GUIDE.md#11-agent-skills-optional-second-brain-os)) are **not** part of the published npm package; you install them per your IDE or agent (Cursor, Claude Code, Copilot, etc.). Typical layouts include a **`second-brain-os`** folder with `SKILL.md` and `references/`.
+
+- **Product skill (`second-brain-os`):** CLI-first vault workflows; **`references/cli-contract.md`** and **`references/recovery.md`** are the stable tables.
+- **Maintainer skill (`second-brain-os-dev`):** scripts, `dev:run`, pre-publish checks, keeping this guide and `src/shared/version.ts` aligned with `package.json`.
+- **Skill-creator tooling** (if you use it): evals and benchmarks; see that pack’s own `SKILL.md`.
 
 ---
 

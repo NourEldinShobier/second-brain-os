@@ -1,6 +1,6 @@
 # Second Brain OS — User & integration guide
 
-This document explains what the **Second Brain OS** CLI (`second-brain-os`, alias `second-brain`) is, how it is structured, how to install and use it from the terminal, how **JSON output** works for automation and agents, and how to use the **Cursor skill** so an AI assistant drives the real CLI instead of guessing files or SQL.
+This document explains what the **Second Brain OS** CLI (`second-brain-os`, alias `second-brain`) is, how it is structured, how to install and use it from the terminal, how **JSON output** works for automation and agents, and how **optional agent skills** help an AI assistant drive the real CLI instead of guessing files or SQL—regardless of which editor or agent runtime you use.
 
 **Package:** [`second-brain-os` on npm](https://www.npmjs.com/package/second-brain-os) (install with `npm install -g second-brain-os`). The unrelated npm package **`second-brain`** is not this project.
 
@@ -315,23 +315,25 @@ second-brain-os config set output_style json --workspace ~/SecondBrain
 
 ---
 
-## 11. Using the Cursor skill (`second-brain-os`)
+## 11. Agent skills (optional): second-brain-os
 
-The repo includes a **Cursor Agent Skill** at **`.cursor/skills/second-brain-os/`** (name: **`second-brain-os`**).
+Many **AI coding assistants** and IDEs support **instruction packs** (often called *skills*, *rules*, or *commands*) so the model prefers real shell invocations over inventing file contents. Tools differ: **Cursor** often uses **`.cursor/skills/<name>/`**, while **Claude Code**, **GitHub Copilot**, and others use their own directories—follow your product’s documentation for where to install a pack.
+
+This project’s skill is named **`second-brain-os`** (a folder containing `SKILL.md`, `references/`, and optionally `evals/`). It is **not** required to use the CLI; it only helps agents stay aligned when you choose to install it.
 
 ### What the skill is for
 
-- Tells the AI to **run the real `second-brain-os` CLI** (build first: `npm run build`) instead of inventing Markdown files or editing SQLite by hand.
-- Steers toward **`--format json`** when the agent needs structured success/failure.
-- Points to **`references/cli-contract.md`** and **`references/recovery.md`** inside the skill for flags and recovery order.
+- Tells the assistant to **run the real `second-brain-os` CLI** (build first: `npm run build` when working from a clone) instead of inventing Markdown files or editing SQLite by hand.
+- Steers toward **`--format json`** when structured success/failure is needed.
+- Points to **`references/cli-contract.md`** and **`references/recovery.md`** inside the skill bundle for flags and recovery order.
 
-### How to use it in Cursor
+### How to use it in your agent / IDE
 
-1. Ensure the skill is available to the workspace (the skill lives under **`.cursor/skills/second-brain-os/`** in this project).
-2. When you work on Second Brain / vault / PARA / `doctor` / capture flows, the skill description helps the agent **choose** this behavior.
+1. Install or enable the skill pack according to your tool (e.g. place the `second-brain-os` folder under your tool’s skills directory when supported).
+2. When you work on Second Brain / vault / PARA / `doctor` / capture flows, the skill description helps the model **choose** CLI-first behavior.
 3. You can explicitly ask: *“Follow the second-brain-os skill and use the CLI with JSON output.”*
 
-### What you should expect from the agent
+### What you should expect from the assistant
 
 - Shell commands such as **`second-brain-os ...`** (if installed globally), **`npx second-brain-os ...`** (from a clone or via `npx`), or **`node dist/cli/index.js ...`** after `npm run build` in the repo.
 - Parsing of the **JSON envelope** (`ok`, `errors`, `warnings`, `next_actions`).
@@ -339,7 +341,7 @@ The repo includes a **Cursor Agent Skill** at **`.cursor/skills/second-brain-os/
 
 ### Skill evaluation (optional)
 
-The skill includes **`evals/evals.json`** for **skill-creator**-style benchmarks (with-skill vs without-skill). See **`.cursor/skills/skill-creator/SKILL.md`** if you want to run formal eval loops.
+If your skill bundle includes **`evals/evals.json`**, you can run **skill-creator**-style benchmarks (with-skill vs without-skill). If you use the skill-creator tooling, see its **`SKILL.md`** in that pack for formal eval loops.
 
 ---
 
@@ -354,7 +356,7 @@ The skill includes **`evals/evals.json`** for **skill-creator**-style benchmarks
 | Index drift or odd doctor findings | **`doctor --format json`**, then **`doctor --repair --dry-run`**, then **`doctor --repair`** if appropriate. |
 | Config mistakes | **`config set`** with **`--dry-run`** first when available. |
 
-Detailed recovery order is in **`.cursor/skills/second-brain-os/references/recovery.md`** (same ideas as above, CLI-only).
+Detailed recovery order is also documented in the skill bundle’s **`references/recovery.md`** (same ideas as above, CLI-only), when you have that pack installed.
 
 ---
 
@@ -370,9 +372,9 @@ npm test
 
 - **npm package**: [second-brain-os](https://www.npmjs.com/package/second-brain-os) — install and version history.  
 - **Developer guide**: [DEV_GUIDE.md](DEV_GUIDE.md) — toolchain, layout, testing, migrations, publishing.  
-- **Second Brain OS Dev (Cursor skill):** `.cursor/skills/second-brain-os-dev/` — maintainer workflow (`dev:run`, scripts, pre-publish).  
+- **Second Brain OS Dev (maintainer skill):** optional skill pack **`second-brain-os-dev`** — repo workflow (`dev:run`, scripts, pre-publish); install per your IDE/agent, same pattern as §11.  
 - **Task roadmap / epics**: `Tasks markdowns/` in this repo.  
-- **Stable CLI table**: `.cursor/skills/second-brain-os/references/cli-contract.md`.  
+- **Stable CLI table**: `references/cli-contract.md` inside the **`second-brain-os`** skill bundle (when present).  
 - **Envelope implementation**: `src/shared/envelope.ts`.  
 - **Command registration**: `src/cli/program.ts`.
 

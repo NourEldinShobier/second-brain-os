@@ -50,7 +50,7 @@ npx second-brain-os doctor --format json --workspace ~/SecondBrain
 
 **Requirements:** **Node.js 20+**. The dependency **better-sqlite3** includes native code; on some systems you need a [build toolchain](https://github.com/WiseLibs/better-sqlite3/blob/master/docs/troubleshooting.md) for `npm install` to compile (common on Windows without Visual Studio Build Tools).
 
-**Documentation:** This file is the project overview. For a full user and integration guide (architecture, JSON envelope, commands, Cursor skill, troubleshooting), see **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** (also included in the published npm package under `docs/`). For contributors—setup, scripts, testing, database workflow, and releases—see **[docs/DEV_GUIDE.md](docs/DEV_GUIDE.md)**.
+**Documentation:** This file is the project overview. For a full user and integration guide (architecture, JSON envelope, commands, optional agent skills, troubleshooting), see **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** (also included in the published npm package under `docs/`). For contributors—setup, scripts, testing, database workflow, and releases—see **[docs/DEV_GUIDE.md](docs/DEV_GUIDE.md)**.
 
 ---
 
@@ -133,9 +133,9 @@ With `--format json` or `--json`, success and failure responses share a stable s
 
 ---
 
-## Cursor skill (optional)
+## Agent skills (optional)
 
-This repository includes a **Cursor Agent Skill** under `.cursor/skills/second-brain-os/` so assistants prefer real CLI invocations and JSON output instead of hand-editing the database. See [docs/USER_GUIDE.md §11](docs/USER_GUIDE.md#11-using-the-cursor-skill-second-brain-os).
+You can give **AI coding assistants** (Cursor, Claude Code, Copilot, or similar) **instruction packs** (“skills”) so they call the real `second-brain-os` CLI and use JSON output instead of hand-editing files or SQLite. Layout depends on the tool (e.g. `.cursor/skills/` in Cursor, or each vendor’s documented folder). See **[docs/USER_GUIDE.md §11](docs/USER_GUIDE.md#11-agent-skills-optional-second-brain-os)**.
 
 ---
 
