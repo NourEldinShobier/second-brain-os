@@ -223,7 +223,20 @@ Valid **`ai_provider`** values: **`openai`** or **`null`** (local-only / determi
 | `sb capture "raw text"` | Raw **inbox** capture (default when no `--type`). |
 | `sb capture --type task "Title"` | Typed capture (`area`, `goal`, `project`, `task`, `resource`, `note`, or `inbox`). |
 
-Typed capture supports options such as `--title`, `--body`, `--slug`, `--area`, `--project`, `--url`, `--due`, `--priority`, etc. (see `second-brain-os capture --help`).
+Typed capture supports options such as `--title`, `--body`, `--body-file`, `--slug`, `--area`, `--project`, `--url`, `--due`, `--priority`, etc. (see `second-brain-os capture --help`).
+
+**Task statuses and the daily surface (`today` / `dashboard show`):**
+
+- Tasks with a **`do_date`** appear in **Overdue**, **Due today**, or **Upcoming** (within the `--days` window).
+- **Focus** statuses (normalized: **Do Next**, **in-progress**) appear in the focus queue even without a due date.
+- **Undated** tasks that are **not** focus statuses (for example plain **`todo`**) do **not** land in those dated buckets; they are counted under **Backlog (undated, non-focus)** on `today` and `dashboard show`, with a capped preview list. Use **`list tasks`** for the full set, or set **`do_date`** (e.g. `capture --type task --due YYYY-MM-DD …`) so they show up in the dated sections.
+
+Examples:
+
+```bash
+second-brain-os capture --type task --title "Ship release" --due 2026-03-25 --status "do-next"
+second-brain-os capture --type task "Quick task" --status todo --body-file ./notes/long-description.md
+```
 
 ### Organize
 

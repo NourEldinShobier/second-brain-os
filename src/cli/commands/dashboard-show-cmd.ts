@@ -69,6 +69,10 @@ export async function runDashboardShow(command: Command): Promise<void> {
       due_today: dash.daily.dueToday.map(listedRowJson),
       upcoming: dash.daily.upcoming.map(listedRowJson),
       focus: dash.daily.focus.map(listedRowJson),
+      backlog: {
+        total: dash.daily.backlog_total,
+        preview: dash.daily.backlog.map(listedRowJson),
+      },
       active_projects: dash.daily.activeProjects.map(listedRowJson),
     },
     goals: dash.goals.map((g) => ({
@@ -121,6 +125,15 @@ export async function runDashboardShow(command: Command): Promise<void> {
     if (dash.daily.dueToday.length === 0) {
       console.log('- _None._');
     }
+    console.log('\n### Backlog (undated, non-focus)\n');
+    console.log(`- **${String(dash.daily.backlog_total)}** task(s) total\n`);
+    if (dash.daily.backlog.length === 0) {
+      console.log('- _None._');
+    } else {
+      for (const r of dash.daily.backlog) {
+        console.log(`- \`${r.slug}\` — ${r.title}`);
+      }
+    }
     console.log('\n### Goals\n');
     for (const g of dash.goals) {
       console.log(`- **${g.goal.title}** — ${String(g.percent)}% (${g.basis})`);
@@ -154,7 +167,10 @@ export async function runDashboardShow(command: Command): Promise<void> {
     }
     presentation.bodyLine(ctx, `Inbox: ${String(dash.daily.inboxCount)} · Archived (all kinds): ${String(dash.archivedEntityCount)}`);
     presentation.bodyLine(ctx, '');
-    presentation.bodyLine(ctx, `Overdue: ${String(dash.daily.overdue.length)} · Today: ${String(dash.daily.dueToday.length)} · Upcoming (${String(upcomingDays)}d): ${String(dash.daily.upcoming.length)} · Focus: ${String(dash.daily.focus.length)}`);
+    presentation.bodyLine(
+      ctx,
+      `Overdue: ${String(dash.daily.overdue.length)} · Today: ${String(dash.daily.dueToday.length)} · Upcoming (${String(upcomingDays)}d): ${String(dash.daily.upcoming.length)} · Focus: ${String(dash.daily.focus.length)} · Backlog (undated): ${String(dash.daily.backlog_total)}`,
+    );
     presentation.bodyLine(ctx, '');
     presentation.bodyLine(ctx, `Goals in flight: ${String(dash.goals.length)}`);
     for (const g of dash.goals.slice(0, 8)) {

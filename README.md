@@ -63,6 +63,8 @@ second-brain-os capture "remember to book dentist"
 second-brain-os doctor --format json
 ```
 
+If your vault lives elsewhere, use **`--workspace <path>`** on each command or set **`SECOND_BRAIN_WORKSPACE`** for the shell session (see **Global options** / **Environment** in [docs/USER_GUIDE.md](docs/USER_GUIDE.md)) so you do not have to repeat the path.
+
 Non-interactive init (CI / scripts):
 
 ```bash

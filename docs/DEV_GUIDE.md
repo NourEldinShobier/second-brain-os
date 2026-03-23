@@ -44,6 +44,7 @@ npx second-brain-os --help
 | `npm run build` | One-shot compile to `dist/`. |
 | `npm run dev` | `tsc --watch` using the build config (iterate on CLI; does not run the CLI). |
 | `npm run dev:run` | **Build once, then run the CLI** — implemented by `scripts/dev-run.mjs`. Prefer **`node scripts/dev-run.mjs …`** for manual tests so npm does not interpret flags like `--format` / `--help`; or use **`npm run dev:run -- -- …`** (extra `--` before CLI args). See §4. |
+| Skip rebuild | **`node scripts/dev-run.mjs --no-build …`** (must be the first argument) or **`SECOND_BRAIN_DEV_SKIP_BUILD=1`** runs `dist/cli/index.js` without `npm run build`. Fails with a clear message if `dist/` is missing. |
 | `npm test` | **Vitest** — `src/**/*.test.ts`, Node environment (`vitest.config.mjs`). |
 | `npm run test:watch` | Vitest watch mode. |
 | `npm run typecheck` | `tsc --noEmit` (full `src/**/*.ts` including tests; uses root `tsconfig.json`). |
@@ -58,7 +59,7 @@ npx second-brain-os --help
 
 | Method | When to use |
 |--------|-------------|
-| **`npm run dev:run -- …`** | **Preferred for quick manual checks:** one command = build + `node dist/cli/index.js …`. |
+| **`npm run dev:run -- …`** | **Preferred for quick manual checks:** one command = build + `node dist/cli/index.js …`. To iterate without rebuilding each time, run **`node scripts/dev-run.mjs --no-build …`** after a successful build, or set **`SECOND_BRAIN_DEV_SKIP_BUILD=1`**. |
 | **`npx second-brain-os …`** | From the **repo root** after `npm install` + `npm run build`. |
 | **`node dist/cli/index.js …`** | Direct entrypoint; good for debugging or absolute paths. |
 | **`npm link`** | Once after build — installs global symlinks to this package so `second-brain-os` works from any directory. |

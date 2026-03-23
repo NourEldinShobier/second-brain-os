@@ -87,8 +87,14 @@ describe('buildDailySurface', () => {
       status: 'do-next',
       areaIds: [aid],
     });
+    const undatedTodo = await entities.createTask({
+      title: 'Backlog item',
+      slug: 'backlog-item',
+      status: 'todo',
+      areaIds: [aid],
+    });
 
-    expect(overdue.ok && today.ok && soon.ok && done.ok && focus.ok).toBe(true);
+    expect(overdue.ok && today.ok && soon.ok && done.ok && focus.ok && undatedTodo.ok).toBe(true);
 
     const asOf = new Date(2026, 0, 15);
     const surface = buildDailySurface({
@@ -103,6 +109,8 @@ describe('buildDailySurface', () => {
     expect(surface.dueToday.map((t) => t.slug)).toContain('today');
     expect(surface.upcoming.map((t) => t.slug)).toContain('soon');
     expect(surface.focus.map((t) => t.slug)).toContain('focus');
+    expect(surface.backlog_total).toBe(1);
+    expect(surface.backlog.map((t) => t.slug)).toContain('backlog-item');
     expect(surface.overdue.some((t) => t.slug === 'done')).toBe(false);
   });
 });

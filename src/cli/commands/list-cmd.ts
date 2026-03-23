@@ -51,8 +51,9 @@ function emitListError(
   emitQuietFallback(ctx, message);
 }
 
-function printMarkdownTable(kind: string, items: readonly ListedEntityRow[]): void {
+function printMarkdownTable(kind: string, items: readonly ListedEntityRow[], count: number, limit: number): void {
   console.log(`## list: ${kind}\n`);
+  console.log(`_${String(count)} ${kind}(s) (limit ${String(limit)})._\n`);
   if (items.length === 0) {
     console.log('_No matching entities._\n');
     return;
@@ -163,7 +164,7 @@ export async function runList(command: Command, entityArg: string | undefined): 
   };
 
   const env = successEnvelope(data, [], [
-    'Use `second-brain-os show <slug or id>` when that command is available.',
+    'Use `second-brain-os show <slug>` to open one entity.',
     'Narrow with `--status` or `list tasks --due YYYY-MM-DD`.',
   ]);
 
@@ -182,12 +183,20 @@ function emitListOutput(
   }
 
   if (ctx.outputFormat === 'markdown') {
-    printMarkdownTable(kind, items);
+    const payload = env.data as { count?: number; filters?: { limit?: number } } | null;
+    const count = payload?.count ?? items.length;
+    const limit = payload?.filters?.limit ?? 100;
+    printMarkdownTable(kind, items, count, limit);
     return;
   }
 
   if (shouldPrintHuman(ctx)) {
     presentation.heading(ctx, `list ${kind}`);
+    const payload = env.data as { count?: number; filters?: { limit?: number } } | null;
+    const count = payload?.count ?? items.length;
+    const limit = payload?.filters?.limit ?? 100;
+    presentation.bodyLine(ctx, `${String(count)} ${kind}(s) (limit ${String(limit)})`);
+    presentation.bodyLine(ctx, '');
     if (items.length === 0) {
       presentation.bodyLine(ctx, 'No matching entities.');
     } else {

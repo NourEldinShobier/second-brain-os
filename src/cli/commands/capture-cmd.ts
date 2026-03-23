@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import type { Command } from 'commander';
 import { warningsWhenAiDisabled } from '../../application/ai-degraded-warnings.js';
 import type { TypedCaptureKind } from '../../application/typed-capture.js';
@@ -21,6 +23,7 @@ export interface CaptureCliOptions {
   readonly type?: string;
   readonly title?: string;
   readonly body?: string;
+  readonly bodyFile?: string;
   readonly slug?: string;
   readonly url?: string;
   readonly due?: string;
@@ -48,9 +51,13 @@ function normalizeCaptureKind(raw: string | undefined): 'inbox' | TypedCaptureKi
   return null;
 }
 
-function parseTitleAndBody(opts: CaptureCliOptions, positional: string): { readonly title: string; readonly body: string } {
+function parseTitleAndBody(
+  opts: CaptureCliOptions,
+  positional: string,
+  bodyFromFile?: string,
+): { readonly title: string; readonly body: string } {
   const titleOpt = opts.title?.trim();
-  const bodyOpt = opts.body?.trim();
+  const bodyOpt = bodyFromFile !== undefined ? bodyFromFile : opts.body?.trim();
   if (titleOpt !== undefined && titleOpt.length > 0) {
     return {
       title: titleOpt,
@@ -61,6 +68,13 @@ function parseTitleAndBody(opts: CaptureCliOptions, positional: string): { reado
     title: positional,
     body: bodyOpt !== undefined && bodyOpt.length > 0 ? bodyOpt : '',
   };
+}
+
+async function readCaptureBody(path: string): Promise<string> {
+  if (path === '-') {
+    return readFileSync(0, 'utf8');
+  }
+  return readFile(path, 'utf8');
 }
 
 function emitValidationError(
@@ -94,23 +108,47 @@ export async function runCapture(command: Command, textParts: readonly string[])
     return;
   }
 
-  if (kind === 'inbox') {
-    await runRawInboxCapture(ctx, opts, positional);
+  const hasBodyFlag = opts.body !== undefined && opts.body.trim() !== '';
+  const bodyFilePath = opts.bodyFile?.trim();
+  if (hasBodyFlag && bodyFilePath !== undefined && bodyFilePath !== '') {
+    emitValidationError(ctx, 'Use either --body or --body-file, not both.');
     return;
   }
 
-  await runTypedCapture(ctx, kind, opts, positional);
+  let bodyFromFile: string | undefined;
+  if (bodyFilePath !== undefined && bodyFilePath !== '') {
+    try {
+      bodyFromFile = await readCaptureBody(bodyFilePath);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      emitValidationError(ctx, `Could not read --body-file: ${msg}`);
+      return;
+    }
+  }
+
+  if (kind === 'inbox') {
+    await runRawInboxCapture(ctx, opts, positional, bodyFromFile);
+    return;
+  }
+
+  await runTypedCapture(ctx, kind, opts, positional, bodyFromFile);
 }
 
 async function runRawInboxCapture(
   ctx: ReturnType<typeof commandContextFrom>,
   _opts: CaptureCliOptions,
   joined: string,
+  bodyFromFile?: string,
 ): Promise<void> {
-  if (joined.length === 0) {
+  if (joined.length > 0 && bodyFromFile !== undefined) {
+    emitValidationError(ctx, 'Pass either capture text or --body-file for inbox capture, not both.');
+    return;
+  }
+  const joinedText = joined.length > 0 ? joined : (bodyFromFile ?? '');
+  if (joinedText.length === 0) {
     emitValidationError(
       ctx,
-      'Pass text to capture, e.g. `second-brain-os capture "Your note"`, or use `--type` for typed entities.',
+      'Pass text to capture, e.g. `second-brain-os capture "Your note"`, `--body-file <path>`, or use `--type` for typed entities.',
     );
     return;
   }
@@ -120,7 +158,7 @@ async function runRawInboxCapture(
       {
         dry_run: true,
         kind: 'inbox_item',
-        preview_text: joined.length > 500 ? `${joined.slice(0, 500)}…` : joined,
+        preview_text: joinedText.length > 500 ? `${joinedText.slice(0, 500)}…` : joinedText,
       },
       [],
       ['Run without --dry-run to write the inbox item.'],
@@ -131,12 +169,12 @@ async function runRawInboxCapture(
     }
     if (ctx.outputFormat === 'markdown') {
       console.log('## capture (dry run)\n');
-      console.log(`Would capture ${String(joined.length)} characters.\n`);
+      console.log(`Would capture ${String(joinedText.length)} characters.\n`);
       return;
     }
     if (shouldPrintHuman(ctx)) {
       presentation.heading(ctx, 'capture (dry run)');
-      presentation.bodyLine(ctx, `Would save a new inbox item (${String(joined.length)} characters).`);
+      presentation.bodyLine(ctx, `Would save a new inbox item (${String(joinedText.length)} characters).`);
       presentation.suggestions(ctx, env.next_actions);
     }
     return;
@@ -173,7 +211,7 @@ async function runRawInboxCapture(
     const entities = new EntityCrudService(repo, db);
     const capture = new MarkdownCaptureService(entities);
 
-    const result = await capture.captureRaw({ text: joined });
+    const result = await capture.captureRaw({ text: joinedText });
     if (!result.ok) {
       emitValidationError(ctx, result.error.message, ['Fix the input and retry.']);
       return;
@@ -205,8 +243,9 @@ async function runTypedCapture(
   kind: TypedCaptureKind,
   opts: CaptureCliOptions,
   positional: string,
+  bodyFromFile?: string,
 ): Promise<void> {
-  const { title, body } = parseTitleAndBody(opts, positional);
+  const { title, body } = parseTitleAndBody(opts, positional, bodyFromFile);
   if (title.length === 0) {
     emitValidationError(
       ctx,

@@ -74,6 +74,22 @@ function printMarkdownToday(
     }
     console.log('');
   }
+  console.log(`### Backlog (undated, non-focus)\n`);
+  if (surface.backlog_total > surface.backlog.length) {
+    console.log(
+      `_Showing **${String(surface.backlog.length)}** of **${String(surface.backlog_total)}** (cap: max per section)._\n`,
+    );
+  } else {
+    console.log(`_**${String(surface.backlog_total)}** task(s)._\n`);
+  }
+  if (surface.backlog.length === 0) {
+    console.log('_None._\n');
+  } else {
+    for (const r of surface.backlog) {
+      console.log(`- ${taskLine(r)}`);
+    }
+    console.log('');
+  }
   console.log(`### Active projects\n`);
   if (surface.activeProjects.length === 0) {
     console.log('_None._\n');
@@ -141,6 +157,10 @@ export async function runToday(command: Command): Promise<void> {
     due_today: surface.dueToday.map(listedRowJson),
     upcoming: surface.upcoming.map(listedRowJson),
     focus: surface.focus.map(listedRowJson),
+    backlog: {
+      total: surface.backlog_total,
+      preview: surface.backlog.map(listedRowJson),
+    },
     active_projects: surface.activeProjects.map(listedRowJson),
   };
 
@@ -192,6 +212,21 @@ export async function runToday(command: Command): Promise<void> {
     section(`Next ${String(upcomingDays)} days`, surface.upcoming);
     presentation.bodyLine(ctx, '');
     section('Focus', surface.focus);
+    presentation.bodyLine(ctx, '');
+    presentation.bodyLine(ctx, `Backlog — undated, non-focus (${String(surface.backlog_total)})`);
+    if (surface.backlog_total > surface.backlog.length) {
+      presentation.bodyLine(
+        ctx,
+        `  (showing ${String(surface.backlog.length)} of ${String(surface.backlog_total)})`,
+      );
+    }
+    if (surface.backlog.length === 0) {
+      presentation.bodyLine(ctx, '  (none)');
+    } else {
+      for (const r of surface.backlog) {
+        presentation.bodyLine(ctx, `  ${taskLine(r)}`);
+      }
+    }
     presentation.bodyLine(ctx, '');
     presentation.bodyLine(ctx, `Active projects (${String(surface.activeProjects.length)})`);
     if (surface.activeProjects.length === 0) {

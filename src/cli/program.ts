@@ -51,6 +51,7 @@ export function createProgram(): Command {
     .option('--type <kind>', 'inbox | area | goal | project | task | resource | note')
     .option('--title <text>', 'title for typed capture')
     .option('--body <text>', 'body for typed capture')
+    .option('--body-file <path>', 'body from file, or - for stdin (typed; inbox when no text arg)')
     .option('--slug <slug>', 'override generated slug')
     .option('--url <url>', 'resource source URL')
     .option('--due <date>', 'task due date (ISO date)')

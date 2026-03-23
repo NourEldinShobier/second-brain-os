@@ -56,6 +56,12 @@ export interface DailySurface {
   readonly upcoming: readonly ListedEntityRow[];
   /** Active tasks with focus status, excluding tasks already placed in date buckets. */
   readonly focus: readonly ListedEntityRow[];
+  /**
+   * Active tasks with no `do_date` and non-focus status (e.g. undated `todo`).
+   * `backlog_total` is the full count; `backlog` is capped by `maxPerSection`.
+   */
+  readonly backlog_total: number;
+  readonly backlog: readonly ListedEntityRow[];
   readonly inboxCount: number;
   readonly inboxSample: readonly ListedEntityRow[];
   readonly activeProjects: readonly ListedEntityRow[];
@@ -128,6 +134,21 @@ export function buildDailySurface(input: DailySurfaceInput): DailySurface {
   }
   focus.sort((a, b) => a.title.localeCompare(b.title));
 
+  const backlogAll: ListedEntityRow[] = [];
+  for (const t of active) {
+    const d = t.do_date;
+    const hasDate = d !== null && d.length > 0;
+    if (hasDate) {
+      continue;
+    }
+    if (isFocusTaskStatus(t.status)) {
+      continue;
+    }
+    backlogAll.push(t);
+  }
+  backlogAll.sort((a, b) => a.title.localeCompare(b.title));
+  const backlogTotal = backlogAll.length;
+
   const inboxRows = listEntitiesInIndex(input.db, 'inbox_item', {
     includeArchived: false,
     limit: 10_000,
@@ -147,6 +168,8 @@ export function buildDailySurface(input: DailySurfaceInput): DailySurface {
     dueToday: dueToday.slice(0, maxPer),
     upcoming: upcoming.slice(0, maxPer),
     focus: focus.slice(0, maxPer),
+    backlog_total: backlogTotal,
+    backlog: backlogAll.slice(0, maxPer),
     inboxCount,
     inboxSample,
     activeProjects,
