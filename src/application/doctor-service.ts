@@ -99,6 +99,31 @@ export function findOrphanIndexRows(workspaceRoot: string, db: SecondBrainDb): D
         path: row.file_path,
         id: row.id,
       });
+      continue;
+    }
+
+    // Check that the payload directory exists (e.g., files/ inside the package)
+    const pkgDir = path.dirname(abs);
+    const payloadDir = path.join(pkgDir, 'files');
+    try {
+      const st = statSync(payloadDir);
+      if (!st.isDirectory()) {
+        findings.push({
+          severity: 'error',
+          category: 'drive_payload_missing_directory',
+          message: `drive_item package missing files/ directory: ${pkgDir}`,
+          path: pkgDir,
+          id: row.id,
+        });
+      }
+    } catch {
+      findings.push({
+        severity: 'error',
+        category: 'drive_payload_missing_directory',
+        message: `drive_item package missing files/ directory: ${pkgDir}`,
+        path: pkgDir,
+        id: row.id,
+      });
     }
   }
 
