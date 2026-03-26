@@ -266,6 +266,18 @@ second-brain-os capture --type task "Quick task" --status todo --body-file ./not
 | `sb archive <kind> <slug>` | Archive an entity. |
 | `sb archive <kind> <slug> --restore` | Restore from archive. |
 
+### Vault drive (imported files and folders)
+
+| Command | Purpose |
+|---------|---------|
+| `sb drive import <path>` | Import a file or folder into `07-drive/items/`. Supports `--title`, `--description`, `--move`, `--tag`, and `--dry-run`. |
+| `sb drive list` | List drive items (filters: `--area`, `--project`, `--task`, `--note`, `--goal`, `--tag`, `--standalone`, `--include-archived`). |
+| `sb drive show <ref>` | Show drive item metadata and body. |
+| `sb drive link <drive_ref>` | Link drive item to areas/projects/tasks/notes/goals (`--area`, `--project`, `--task`, `--note`, `--goal`; `--replace`, `--clear`). |
+| `sb drive update <drive_ref>` | Update description, tags, or body (`--description`, `--tag`, `--body`, `--clear-tags`). |
+| `sb drive archive <slug>` | Move drive item to `99-archive/drive/`. |
+| `sb drive restore <slug>` | Restore archived drive item. |
+
 ### Health
 
 | Command | Purpose |
