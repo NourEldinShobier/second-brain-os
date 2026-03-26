@@ -16,7 +16,8 @@ describe('ensureStarterContent', () => {
     await access(join(root, 'README.md'));
     const readme = await readFile(join(root, 'README.md'), 'utf8');
     expect(readme).toContain('PARA');
-    await access(join(root, '01-areas/area-personal.md'));
-    await access(join(root, '00-inbox/inbox-starter-capture.md'));
+    await access(join(root, '01-areas/personal/index.md'));
+    await access(join(root, '06-notes/how-your-second-brain-works/index.md'));
+    await access(join(root, '00-inbox/2026-01-01-starter-capture/index.md'));
   });
 });

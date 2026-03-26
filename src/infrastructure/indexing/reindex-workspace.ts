@@ -2,11 +2,14 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { ReindexResult } from '../../domain/indexing/drift.js';
 import type { DriftItem } from '../../domain/indexing/drift.js';
+import { parseDriveItemDocument } from '../markdown/parse-drive-item.js';
 import { parseMarkdownEntity } from '../markdown/parse-document.js';
 import type { SecondBrainDb } from '../db/open-database.js';
+import { isDriveItemMarkdownPath } from './drive-markdown-path.js';
 import { listIndexedMarkdownPaths } from './list-markdown-files.js';
 import { syncEntityLinksFromMeta } from './sync-entity-links.js';
 import { upsertByKind } from './upsert-entity-row.js';
+import { upsertDriveItem } from './upsert-drive-item.js';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -21,6 +24,7 @@ export async function reindexWorkspace(workspaceRoot: string, db: SecondBrainDb)
   const paths = await listIndexedMarkdownPaths(root);
   const drift: DriftItem[] = [];
   const idToPaths = new Map<string, string[]>();
+  const driveIdToPaths = new Map<string, string[]>();
   let indexed = 0;
 
   for (const rel of paths) {
@@ -34,6 +38,34 @@ export async function reindexWorkspace(workspaceRoot: string, db: SecondBrainDb)
         path: rel,
         message: e instanceof Error ? e.message : String(e),
       });
+      continue;
+    }
+
+    let st;
+    try {
+      st = await stat(abs);
+    } catch {
+      st = undefined;
+    }
+    const updatedAt = st ? st.mtime.toISOString() : nowIso();
+    const createdAt = updatedAt;
+
+    if (isDriveItemMarkdownPath(rel)) {
+      const parsed = parseDriveItemDocument(raw);
+      if (!parsed.ok) {
+        drift.push({
+          category: 'unreadable_frontmatter',
+          path: rel,
+          message: parsed.error,
+        });
+        continue;
+      }
+      const { meta } = parsed.value;
+      const dlist = driveIdToPaths.get(meta.id) ?? [];
+      dlist.push(rel);
+      driveIdToPaths.set(meta.id, dlist);
+      upsertDriveItem(db, meta, rel, createdAt, updatedAt);
+      indexed += 1;
       continue;
     }
 
@@ -51,15 +83,6 @@ export async function reindexWorkspace(workspaceRoot: string, db: SecondBrainDb)
     const list = idToPaths.get(meta.id) ?? [];
     list.push(rel);
     idToPaths.set(meta.id, list);
-
-    let st;
-    try {
-      st = await stat(abs);
-    } catch {
-      st = undefined;
-    }
-    const updatedAt = st ? st.mtime.toISOString() : nowIso();
-    const createdAt = updatedAt;
 
     upsertByKind(
       db,
@@ -79,6 +102,17 @@ export async function reindexWorkspace(workspaceRoot: string, db: SecondBrainDb)
         category: 'duplicate_stable_id',
         id,
         message: `Stable id appears in ${String(filePaths.length)} files`,
+        detail: { paths: filePaths },
+      });
+    }
+  }
+
+  for (const [id, filePaths] of driveIdToPaths) {
+    if (filePaths.length > 1) {
+      drift.push({
+        category: 'duplicate_stable_id',
+        id,
+        message: `Drive item id appears in ${String(filePaths.length)} files`,
         detail: { paths: filePaths },
       });
     }

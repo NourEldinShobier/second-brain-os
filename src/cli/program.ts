@@ -12,6 +12,16 @@ import {
   runOrganizeReclassify,
 } from './commands/organize-cmd.js';
 import { runArchive } from './commands/archive-cmd.js';
+import { runAssetAdd, runAssetList, runAssetRemove } from './commands/asset-cmd.js';
+import {
+  runDriveArchive,
+  runDriveImport,
+  runDriveLink,
+  runDriveList,
+  runDriveRestore,
+  runDriveShow,
+  runDriveUpdate,
+} from './commands/drive-cmd.js';
 import { runDashboardShow } from './commands/dashboard-show-cmd.js';
 import { runReviewWeekly } from './commands/review-weekly-cmd.js';
 import { runSearch } from './commands/search-cmd.js';
@@ -214,6 +224,176 @@ export function createProgram(): Command {
     .action(async (_options: unknown, command: Command) => {
       await runReviewWeekly(command);
     });
+
+  const assetCmd = program.command('asset').description('Attach and manage files on entity packages (assets/)');
+
+  assetCmd
+    .command('add')
+    .description('Copy a file into an entity package under assets/')
+    .argument('<entity>', 'entity slug or stable id')
+    .argument('<file>', 'source file path')
+    .option('--title <text>', 'optional display title')
+    .option('--description <text>', 'optional description')
+    .action(
+      async (
+        entity: string,
+        file: string,
+        opts: { title?: string; description?: string },
+        command: Command,
+      ) => {
+        await runAssetAdd(command, entity, file, opts);
+      },
+    );
+
+  assetCmd
+    .command('list')
+    .description('List assets attached to an entity (from index)')
+    .argument('<entity>', 'entity slug or stable id')
+    .action(async (entity: string, _options: unknown, command: Command) => {
+      await runAssetList(command, entity);
+    });
+
+  assetCmd
+    .command('remove')
+    .description('Remove an asset by id or assets/ path (deletes file and manifest entry)')
+    .argument('<entity>', 'entity slug or stable id')
+    .argument('<asset_ref>', 'asset id or path such as assets/photo.png')
+    .action(async (entity: string, assetRef: string, _options: unknown, command: Command) => {
+      await runAssetRemove(command, entity, assetRef);
+    });
+
+  const driveCmd = program.command('drive').description('Vault drive: import files and folders into 07-drive/');
+
+  driveCmd
+    .command('import')
+    .description('Copy or move a file or folder into a new drive item package')
+    .argument('<path>', 'source file or directory')
+    .option('--title <text>', 'title (default: basename)')
+    .option('--description <text>', 'description stored in front matter and body')
+    .option('--move', 'remove the source after copy', false)
+    .action(async (src: string, opts: { title?: string; description?: string; move?: boolean }, command: Command) => {
+      await runDriveImport(command, src, opts);
+    });
+
+  driveCmd
+    .command('list')
+    .description('List drive items from the index')
+    .option('--include-archived', 'include archived drive items', false)
+    .action(async (opts: { includeArchived?: boolean }, command: Command) => {
+      await runDriveList(command, opts);
+    });
+
+  driveCmd
+    .command('show')
+    .description('Show a drive item by slug or id')
+    .argument('<ref>', 'slug or stable id')
+    .option('--include-archived', 'resolve archived items', false)
+    .action(async (ref: string, opts: { includeArchived?: boolean }, command: Command) => {
+      await runDriveShow(command, ref, opts);
+    });
+
+  driveCmd
+    .command('archive')
+    .description('Move a drive item package to 99-archive/drive/')
+    .argument('<slug>', 'drive item slug')
+    .option('--reason <text>', 'archive reason stored in metadata')
+    .action(async (slug: string, opts: { reason?: string }, command: Command) => {
+      await runDriveArchive(command, slug, opts);
+    });
+
+  driveCmd
+    .command('restore')
+    .description('Restore an archived drive item to 07-drive/items/')
+    .argument('<slug>', 'drive item slug')
+    .action(async (slug: string, _options: unknown, command: Command) => {
+      await runDriveRestore(command, slug);
+    });
+
+  driveCmd
+    .command('link')
+    .description('Link a drive item to areas, projects, tasks, notes, or goals (updates item.md)')
+    .argument('<drive_ref>', 'drive slug or id')
+    .option(
+      '--area <ref>',
+      'area id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option(
+      '--project <ref>',
+      'project id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option(
+      '--task <ref>',
+      'task id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option(
+      '--note <ref>',
+      'note id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option(
+      '--goal <ref>',
+      'goal id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option('--replace', 'set each provided kind to exactly these refs (no merge)', false)
+    .option('--clear <kinds>', 'comma-separated kinds to clear first: area,project,task,note,goal')
+    .option('--include-archived', 'allow archived drive items', false)
+    .action(
+      async (
+        driveRef: string,
+        opts: {
+          area?: string[];
+          project?: string[];
+          task?: string[];
+          note?: string[];
+          goal?: string[];
+          replace?: boolean;
+          clear?: string;
+          includeArchived?: boolean;
+        },
+        command: Command,
+      ) => {
+        await runDriveLink(command, driveRef, opts);
+      },
+    );
+
+  driveCmd
+    .command('update')
+    .description('Update drive item description, tags, or body in item.md')
+    .argument('<drive_ref>', 'drive slug or id')
+    .option('--description <text>', 'front matter description')
+    .option(
+      '--tag <tag>',
+      'tag (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option('--clear-tags', 'remove all tags', false)
+    .option('--body <text>', 'markdown body')
+    .option('--include-archived', 'allow archived drive items', false)
+    .action(
+      async (
+        driveRef: string,
+        opts: {
+          description?: string;
+          tag?: string[];
+          clearTags?: boolean;
+          body?: string;
+          includeArchived?: boolean;
+        },
+        command: Command,
+      ) => {
+        await runDriveUpdate(command, driveRef, opts);
+      },
+    );
 
   program
     .command('archive')

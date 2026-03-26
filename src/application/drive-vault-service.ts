@@ -1,0 +1,549 @@
+import { createHash, randomUUID } from 'node:crypto';
+import { access, cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { eq } from 'drizzle-orm';
+import type { DriveItemMeta } from '../domain/drive/drive-item-meta.js';
+import { isValidSlug, slugifyTitle } from '../domain/markdown/slug.js';
+import type { Result } from '../domain/result.js';
+import { err, ok } from '../domain/result.js';
+import type { SecondBrainDb } from '../infrastructure/db/open-database.js';
+import * as schema from '../infrastructure/db/schema.js';
+import {
+  archivedDriveItemDocumentPath,
+  archivedDriveItemPackageDir,
+  driveItemDocumentPath,
+  driveItemPackageDir,
+  DRIVE_PAYLOAD_DIR,
+} from '../infrastructure/workspace/canonical-layout.js';
+import {
+  type DriveLinkableKind,
+  resolveDriveLinkTargetRef,
+} from '../infrastructure/relationships/resolve-entity-ref.js';
+import { parseDriveItemDocument, serializeDriveItem } from '../infrastructure/markdown/parse-drive-item.js';
+import { upsertDriveItem } from '../infrastructure/indexing/upsert-drive-item.js';
+
+function guessMime(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  const map: Record<string, string> = {
+    '.png': 'image/png',
+    '.pdf': 'application/pdf',
+    '.txt': 'text/plain',
+    '.md': 'text/markdown',
+    '.json': 'application/json',
+    '.zip': 'application/zip',
+  };
+  return map[ext] ?? 'application/octet-stream';
+}
+
+async function sha256File(abs: string): Promise<string> {
+  const buf = await readFile(abs);
+  return createHash('sha256').update(buf).digest('hex');
+}
+
+async function countFilesRecursive(dir: string): Promise<number> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  let n = 0;
+  for (const e of entries) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      n += await countFilesRecursive(p);
+    } else if (e.isFile()) {
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function packageDirExists(workspaceRoot: string, slug: string): Promise<boolean> {
+  const p = path.join(workspaceRoot, driveItemPackageDir(slug));
+  try {
+    await access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function allocateDriveSlug(workspaceRoot: string, base: string): Promise<string> {
+  let s = base;
+  let n = 1;
+  while (await packageDirExists(workspaceRoot, s)) {
+    n += 1;
+    s = `${base}-${String(n)}`;
+  }
+  return s;
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+export async function importDrivePayload(
+  workspaceRoot: string,
+  db: SecondBrainDb,
+  sourcePath: string,
+  options?: {
+    readonly title?: string;
+    readonly description?: string;
+    readonly move?: boolean;
+    readonly dryRun?: boolean;
+  },
+): Promise<Result<{ readonly slug: string; readonly relPath: string; readonly meta: DriveItemMeta }, string>> {
+  const root = path.resolve(workspaceRoot);
+  const absSource = path.resolve(sourcePath);
+  let st;
+  try {
+    st = await stat(absSource);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : String(e));
+  }
+  const isDir = st.isDirectory();
+  const baseTitle =
+    options?.title?.trim() ??
+    (isDir ? path.basename(absSource) : path.basename(absSource, path.extname(absSource)));
+  let slug = slugifyTitle(baseTitle);
+  if (!isValidSlug(slug)) {
+    slug = slugifyTitle('import') + '-' + randomUUID().slice(0, 8);
+  }
+  slug = await allocateDriveSlug(root, slug);
+
+  const id = randomUUID();
+  const importedAt = nowIso();
+  const originalName = path.basename(absSource);
+
+  if (options?.dryRun === true) {
+    const meta: DriveItemMeta = {
+      id,
+      version: 1,
+      slug,
+      title: baseTitle || slug,
+      item_type: isDir ? 'folder' : 'file',
+      original_name: originalName,
+      source_path: absSource,
+      imported_at: importedAt,
+    };
+    return ok({ slug, relPath: driveItemDocumentPath(slug), meta });
+  }
+
+  const pkgDir = path.join(root, driveItemPackageDir(slug));
+  const filesDir = path.join(pkgDir, DRIVE_PAYLOAD_DIR);
+  await mkdir(filesDir, { recursive: true });
+
+  if (isDir) {
+    const entries = await readdir(absSource, { withFileTypes: true });
+    for (const e of entries) {
+      await cp(path.join(absSource, e.name), path.join(filesDir, e.name), { recursive: true, force: true });
+    }
+  } else {
+    const dest = path.join(filesDir, originalName);
+    await cp(absSource, dest, { force: true });
+  }
+
+  let childCount: number | undefined;
+  let mime: string | null = null;
+  let sha: string | null = null;
+  if (isDir) {
+    childCount = await countFilesRecursive(filesDir);
+  } else {
+    const dest = path.join(filesDir, originalName);
+    sha = await sha256File(dest);
+    mime = guessMime(originalName);
+  }
+
+  if (options?.move === true) {
+    await rm(absSource, { recursive: true, force: true });
+  }
+
+  const meta: DriveItemMeta = {
+    id,
+    version: 1,
+    slug,
+    title: baseTitle.length > 0 ? baseTitle : slug,
+    description: options?.description ?? null,
+    item_type: isDir ? 'folder' : 'file',
+    original_name: originalName,
+    source_path: absSource,
+    imported_at: importedAt,
+    mime_type: mime,
+    sha256: sha,
+    ...(isDir ? { child_count: childCount ?? 0 } : {}),
+  };
+
+  const relPath = driveItemDocumentPath(slug);
+  const body = options?.description !== undefined ? options.description : '';
+  const absDoc = path.join(root, relPath);
+  await mkdir(path.dirname(absDoc), { recursive: true });
+  await writeFile(absDoc, serializeDriveItem(meta, body), 'utf8');
+
+  const stDoc = await stat(absDoc);
+  upsertDriveItem(db, meta, relPath, stDoc.birthtime.toISOString(), stDoc.mtime.toISOString());
+
+  return ok({ slug, relPath, meta });
+}
+
+export function listDriveItems(db: SecondBrainDb, includeArchived: boolean): typeof schema.driveItems.$inferSelect[] {
+  if (includeArchived) {
+    return db.select().from(schema.driveItems).all();
+  }
+  return db.select().from(schema.driveItems).where(eq(schema.driveItems.archived, false)).all();
+}
+
+export function findDriveItemByRef(
+  db: SecondBrainDb,
+  ref: string,
+  includeArchived: boolean,
+): Result<typeof schema.driveItems.$inferSelect, string> {
+  const r = ref.trim();
+  if (r.length === 0) {
+    return err('Empty reference');
+  }
+  const byId = db.select().from(schema.driveItems).where(eq(schema.driveItems.id, r)).get();
+  if (byId !== undefined) {
+    if (!includeArchived && byId.archived) {
+      return err('Drive item is archived. Pass --include-archived.');
+    }
+    return ok(byId);
+  }
+  const bySlug = db.select().from(schema.driveItems).where(eq(schema.driveItems.slug, r)).get();
+  if (bySlug !== undefined) {
+    if (!includeArchived && bySlug.archived) {
+      return err('Drive item is archived. Pass --include-archived.');
+    }
+    return ok(bySlug);
+  }
+  return err(`Drive item not found: ${r}`);
+}
+
+export async function loadDriveItemBody(workspaceRoot: string, filePath: string): Promise<Result<string, string>> {
+  const abs = path.join(workspaceRoot, filePath);
+  try {
+    const raw = await readFile(abs, 'utf8');
+    const p = parseDriveItemDocument(raw);
+    if (!p.ok) {
+      return err(p.error);
+    }
+    return ok(p.value.body);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : String(e));
+  }
+}
+
+/** Comma-separated kinds for `drive link --clear` (e.g. `area,project`). */
+export function parseDriveLinkClearKinds(raw: string | undefined): Result<readonly DriveLinkableKind[], string> {
+  if (raw === undefined || raw.trim() === '') {
+    return ok([]);
+  }
+  const kinds: DriveLinkableKind[] = [];
+  const allowed = new Set<string>(['area', 'project', 'task', 'note', 'goal']);
+  for (const part of raw.split(',')) {
+    const t = part.trim().toLowerCase();
+    if (t.length === 0) {
+      continue;
+    }
+    if (!allowed.has(t)) {
+      return err(`Unknown link kind in --clear: ${t} (use area, project, task, note, goal)`);
+    }
+    kinds.push(t as DriveLinkableKind);
+  }
+  return ok(kinds);
+}
+
+export interface DriveLinkAppendInput {
+  readonly areas?: readonly string[];
+  readonly projects?: readonly string[];
+  readonly tasks?: readonly string[];
+  readonly notes?: readonly string[];
+  readonly goals?: readonly string[];
+}
+
+function clearDriveLinkKind(meta: DriveItemMeta, kind: DriveLinkableKind): DriveItemMeta {
+  switch (kind) {
+    case 'area':
+      return { ...meta, area_ids: undefined };
+    case 'project':
+      return { ...meta, project_ids: undefined };
+    case 'task':
+      return { ...meta, task_ids: undefined };
+    case 'note':
+      return { ...meta, note_ids: undefined };
+    case 'goal':
+      return { ...meta, goal_ids: undefined };
+  }
+}
+
+function mergeIds(existing: string[] | undefined, add: readonly string[]): string[] | undefined {
+  const merged = [...new Set([...(existing ?? []), ...add])];
+  return merged.length > 0 ? merged : undefined;
+}
+
+function resolveIdsForKind(
+  db: SecondBrainDb,
+  kind: DriveLinkableKind,
+  refs: readonly string[],
+): Result<string[], string> {
+  const ids: string[] = [];
+  for (const ref of refs) {
+    const r = resolveDriveLinkTargetRef(db, kind, ref);
+    if (!r.ok) {
+      return r;
+    }
+    ids.push(r.value);
+  }
+  return ok(ids);
+}
+
+async function writeDriveItemDocument(
+  workspaceRoot: string,
+  db: SecondBrainDb,
+  relPath: string,
+  meta: DriveItemMeta,
+  body: string,
+): Promise<void> {
+  const root = path.resolve(workspaceRoot);
+  const absDoc = path.join(root, relPath);
+  await writeFile(absDoc, serializeDriveItem(meta, body), 'utf8');
+  const stDoc = await stat(absDoc);
+  upsertDriveItem(db, meta, relPath, stDoc.birthtime.toISOString(), stDoc.mtime.toISOString());
+}
+
+/**
+ * Update relationship ids on a drive item (durable `item.md` + index).
+ * - Default: merge new ids into each kind.
+ * - `replace`: each kind that has at least one ref is set to exactly those ids.
+ * - `clearKinds`: clear listed kinds before applying refs (e.g. clear area, then add new area).
+ */
+export async function applyDriveItemLinks(
+  workspaceRoot: string,
+  db: SecondBrainDb,
+  driveRef: string,
+  options: {
+    readonly append: DriveLinkAppendInput;
+    readonly replace: boolean;
+    readonly clearKinds: readonly DriveLinkableKind[];
+    readonly dryRun: boolean;
+  },
+  includeArchived: boolean,
+): Promise<Result<DriveItemMeta, string>> {
+  const row = findDriveItemByRef(db, driveRef, includeArchived);
+  if (!row.ok) {
+    return err(row.error);
+  }
+  const relPath = row.value.file_path;
+  const root = path.resolve(workspaceRoot);
+  const raw = await readFile(path.join(root, relPath), 'utf8');
+  const parsed = parseDriveItemDocument(raw);
+  if (!parsed.ok) {
+    return err(parsed.error);
+  }
+  let meta: DriveItemMeta = { ...parsed.value.meta };
+  const body = parsed.value.body;
+
+  for (const k of options.clearKinds) {
+    meta = clearDriveLinkKind(meta, k);
+  }
+
+  const a = options.append.areas ?? [];
+  const p = options.append.projects ?? [];
+  const t = options.append.tasks ?? [];
+  const n = options.append.notes ?? [];
+  const g = options.append.goals ?? [];
+  const hasRefs = a.length + p.length + t.length + n.length + g.length > 0;
+  if (!hasRefs && options.clearKinds.length === 0) {
+    return err('Pass at least one --area/--project/--task/--note/--goal or --clear');
+  }
+
+  const applyKind = (kind: DriveLinkableKind, refs: readonly string[]): Result<void, string> => {
+    if (refs.length === 0) {
+      return ok(undefined);
+    }
+    const ids = resolveIdsForKind(db, kind, refs);
+    if (!ids.ok) {
+      return err(ids.error);
+    }
+    const next = ids.value.length > 0 ? [...ids.value] : undefined;
+    if (options.replace) {
+      switch (kind) {
+        case 'area':
+          meta = { ...meta, area_ids: next };
+          break;
+        case 'project':
+          meta = { ...meta, project_ids: next };
+          break;
+        case 'task':
+          meta = { ...meta, task_ids: next };
+          break;
+        case 'note':
+          meta = { ...meta, note_ids: next };
+          break;
+        case 'goal':
+          meta = { ...meta, goal_ids: next };
+          break;
+      }
+    } else {
+      switch (kind) {
+        case 'area':
+          meta = { ...meta, area_ids: mergeIds(meta.area_ids, ids.value) };
+          break;
+        case 'project':
+          meta = { ...meta, project_ids: mergeIds(meta.project_ids, ids.value) };
+          break;
+        case 'task':
+          meta = { ...meta, task_ids: mergeIds(meta.task_ids, ids.value) };
+          break;
+        case 'note':
+          meta = { ...meta, note_ids: mergeIds(meta.note_ids, ids.value) };
+          break;
+        case 'goal':
+          meta = { ...meta, goal_ids: mergeIds(meta.goal_ids, ids.value) };
+          break;
+      }
+    }
+    return ok(undefined);
+  };
+
+  const rA = applyKind('area', a);
+  if (!rA.ok) {
+    return rA;
+  }
+  const rP = applyKind('project', p);
+  if (!rP.ok) {
+    return rP;
+  }
+  const rT = applyKind('task', t);
+  if (!rT.ok) {
+    return rT;
+  }
+  const rN = applyKind('note', n);
+  if (!rN.ok) {
+    return rN;
+  }
+  const rG = applyKind('goal', g);
+  if (!rG.ok) {
+    return rG;
+  }
+
+  if (options.dryRun) {
+    return ok(meta);
+  }
+
+  await writeDriveItemDocument(workspaceRoot, db, relPath, meta, body);
+  return ok(meta);
+}
+
+export async function updateDriveItemMetadata(
+  workspaceRoot: string,
+  db: SecondBrainDb,
+  driveRef: string,
+  patch: {
+    readonly description?: string | null;
+    readonly tags?: readonly string[];
+    readonly body?: string;
+  },
+  includeArchived: boolean,
+  options: { readonly dryRun: boolean },
+): Promise<Result<DriveItemMeta, string>> {
+  const row = findDriveItemByRef(db, driveRef, includeArchived);
+  if (!row.ok) {
+    return err(row.error);
+  }
+  const relPath = row.value.file_path;
+  const root = path.resolve(workspaceRoot);
+  const raw = await readFile(path.join(root, relPath), 'utf8');
+  const parsed = parseDriveItemDocument(raw);
+  if (!parsed.ok) {
+    return err(parsed.error);
+  }
+  const hasPatch =
+    patch.description !== undefined || patch.tags !== undefined || patch.body !== undefined;
+  if (!hasPatch) {
+    return err('Pass at least one of description, tags, or body to update');
+  }
+  let meta: DriveItemMeta = { ...parsed.value.meta };
+  if (patch.description !== undefined) {
+    meta = { ...meta, description: patch.description };
+  }
+  if (patch.tags !== undefined) {
+    meta = { ...meta, tags: patch.tags.length > 0 ? [...patch.tags] : undefined };
+  }
+  const body = patch.body !== undefined ? patch.body : parsed.value.body;
+  if (options.dryRun) {
+    return ok(meta);
+  }
+  await writeDriveItemDocument(workspaceRoot, db, relPath, meta, body);
+  return ok(meta);
+}
+
+export async function archiveDriveItem(
+  workspaceRoot: string,
+  db: SecondBrainDb,
+  slug: string,
+  reason?: string,
+): Promise<Result<{ readonly newPath: string }, string>> {
+  const root = path.resolve(workspaceRoot);
+  const row = db.select().from(schema.driveItems).where(eq(schema.driveItems.slug, slug)).get();
+  if (row === undefined) {
+    return err(`No drive item with slug: ${slug}`);
+  }
+  if (row.archived) {
+    return err('Drive item is already archived');
+  }
+  const fromPkg = path.join(root, driveItemPackageDir(slug));
+  const toPkg = path.join(root, archivedDriveItemPackageDir(slug));
+  try {
+    await rename(fromPkg, toPkg);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : String(e));
+  }
+  const relPath = archivedDriveItemDocumentPath(slug);
+  const absDoc = path.join(root, relPath);
+  const raw = await readFile(absDoc, 'utf8');
+  const parsed = parseDriveItemDocument(raw);
+  if (!parsed.ok) {
+    return err(parsed.error);
+  }
+  const next: DriveItemMeta = {
+    ...parsed.value.meta,
+    archived: true,
+    archived_at: nowIso(),
+    archive_reason: reason ?? null,
+  };
+  await writeFile(absDoc, serializeDriveItem(next, parsed.value.body), 'utf8');
+  const st = await stat(absDoc);
+  upsertDriveItem(db, next, relPath, st.birthtime.toISOString(), st.mtime.toISOString());
+  return ok({ newPath: relPath });
+}
+
+export async function restoreDriveItem(workspaceRoot: string, db: SecondBrainDb, slug: string): Promise<Result<true, string>> {
+  const root = path.resolve(workspaceRoot);
+  const row = db.select().from(schema.driveItems).where(eq(schema.driveItems.slug, slug)).get();
+  if (row === undefined) {
+    return err(`No drive item with slug: ${slug}`);
+  }
+  if (!row.archived) {
+    return err('Drive item is not archived');
+  }
+  const fromPkg = path.join(root, archivedDriveItemPackageDir(slug));
+  const toPkg = path.join(root, driveItemPackageDir(slug));
+  try {
+    await rename(fromPkg, toPkg);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : String(e));
+  }
+  const relPath = driveItemDocumentPath(slug);
+  const absDoc = path.join(root, relPath);
+  const raw = await readFile(absDoc, 'utf8');
+  const parsed = parseDriveItemDocument(raw);
+  if (!parsed.ok) {
+    return err(parsed.error);
+  }
+  const next: DriveItemMeta = {
+    ...parsed.value.meta,
+    archived: false,
+    archived_at: null,
+    archive_reason: null,
+  };
+  await writeFile(absDoc, serializeDriveItem(next, parsed.value.body), 'utf8');
+  const st = await stat(absDoc);
+  upsertDriveItem(db, next, relPath, st.birthtime.toISOString(), st.mtime.toISOString());
+  return ok(true);
+}

@@ -13,6 +13,21 @@ const keyResultSchema = z.object({
   order: z.number().int(),
 });
 
+/** One file attached to an entity package under `assets/` (PRD §7.3). Stored in front matter only — no per-asset Markdown stubs. */
+export const entityAssetManifestEntrySchema = z.object({
+  id: z.uuid(),
+  /** Path relative to the entity package root, e.g. `assets/screenshot.png`. */
+  path: z.string().min(1),
+  original_filename: z.string().min(1),
+  mime_type: z.string().min(1),
+  imported_at: z.string().min(1),
+  title: z.string().optional(),
+  description: z.string().nullable().optional(),
+  sha256: z.string().nullable().optional(),
+});
+
+export type EntityAssetManifestEntry = z.infer<typeof entityAssetManifestEntrySchema>;
+
 /** Root `second_brain` object stored in YAML front matter (rebuild-critical). */
 export const secondBrainMetaSchema = z.object({
   id: z.uuid(),
@@ -53,6 +68,9 @@ export const secondBrainMetaSchema = z.object({
   favorite: z.boolean().optional(),
 
   key_results: z.array(keyResultSchema).optional(),
+
+  /** Entity-owned files under `<package>/assets/` (indexed in `entity_assets`). */
+  assets: z.array(entityAssetManifestEntrySchema).optional(),
 
   /** Outgoing typed edges mirrored into `entity_links` (PRD relationship model). */
   area_ids: z.array(z.uuid()).optional(),

@@ -1,5 +1,10 @@
 import { index, sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
+/**
+ * `file_path` columns: workspace-relative path to the canonical entity Markdown file
+ * (`<para-folder>/<slug>/index.md`), not the package directory alone. See `activeEntityDocumentPath`.
+ */
+
 /** Shared: ISO-8601 timestamps stored as text for inspectability. */
 const timestamps = {
   created_at: text('created_at').notNull(),

@@ -12,7 +12,7 @@ describe('reindexWorkspace', () => {
   it('is idempotent and indexes starter-shaped area', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'sb-reindex-'));
     await ensureCanonicalLayout(root);
-    const areaMd = path.join(root, '01-areas', 'area-personal.md');
+    const areaMd = path.join(root, '01-areas', 'personal', 'index.md');
     await mkdir(path.dirname(areaMd), { recursive: true });
     await writeFile(
       areaMd,

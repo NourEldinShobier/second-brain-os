@@ -3,6 +3,10 @@ import type { ListableEntityKind } from '../../domain/listable-kind.js';
 import type { SecondBrainDb } from '../db/open-database.js';
 import * as schema from '../db/schema.js';
 
+function deleteEntityAssetsForOwner(db: SecondBrainDb, entityId: string): void {
+  db.delete(schema.entityAssets).where(eq(schema.entityAssets.owner_entity_id, entityId)).run();
+}
+
 /** Remove all `entity_links` rows touching this entity (as source or target). */
 export function deleteEntityLinksForEntity(db: SecondBrainDb, kind: string, entityId: string): void {
   db.delete(schema.entityLinks)
@@ -17,6 +21,7 @@ export function deleteEntityLinksForEntity(db: SecondBrainDb, kind: string, enti
 
 /** Delete the SQLite row for a core entity (does not touch Markdown or entity_links). */
 export function deleteEntityIndexRow(db: SecondBrainDb, kind: ListableEntityKind, entityId: string): void {
+  deleteEntityAssetsForOwner(db, entityId);
   switch (kind) {
     case 'area':
       db.delete(schema.areas).where(eq(schema.areas.id, entityId)).run();

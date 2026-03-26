@@ -7,7 +7,6 @@ import {
   type SecondBrainMeta,
 } from '../domain/markdown/second-brain-meta.js';
 import type { CoreEntityKind } from '../domain/entity-kind.js';
-import { buildEntityFilename } from '../domain/markdown/filename.js';
 import { isValidSlug, slugifyTitle } from '../domain/markdown/slug.js';
 import { validateRelationshipInvariants } from '../domain/relationships/validation.js';
 import type { Result } from '../domain/result.js';
@@ -373,19 +372,16 @@ export class EntityCrudService {
     }
     const nextMeta = merged.value;
     const kind = nextMeta.kind as Exclude<CoreEntityKind, 'archive_record' | 'inbox_item'>;
-    const dir = path.dirname(relativePath);
-    const fileName = buildEntityFilename(kind, nextSlug);
-    const newRelPath = path.join(dir, fileName).replace(/\\/g, '/');
+    const newRelPath = this.repo.activeEntityPath(kind, nextSlug);
+    if (newRelPath !== relativePath) {
+      const moved = await this.repo.moveEntityPackage(path.dirname(relativePath), path.dirname(newRelPath));
+      if (!moved.ok) {
+        return moved;
+      }
+    }
     const w = await this.repo.writeEntity(newRelPath, nextMeta, body);
     if (!w.ok) {
       return w;
-    }
-    if (newRelPath !== relativePath) {
-      try {
-        await rm(this.repo.resolvePath(relativePath));
-      } catch (e) {
-        return err(e instanceof Error ? e.message : String(e));
-      }
     }
     await this.syncIndex(nextMeta, newRelPath);
     return ok({ path: newRelPath, meta: nextMeta });
@@ -535,10 +531,10 @@ export class EntityCrudService {
 
     if (newRel !== relativePath) {
       try {
-        await rm(this.repo.resolvePath(relativePath));
+        await rm(this.repo.resolvePath(path.dirname(relativePath)), { recursive: true, force: true });
       } catch (e) {
         return err(
-          `Reclassified to ${newRel} but could not remove old file: ${e instanceof Error ? e.message : String(e)}`,
+          `Reclassified to ${newRel} but could not remove old package: ${e instanceof Error ? e.message : String(e)}`,
         );
       }
     }

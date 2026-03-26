@@ -5,7 +5,7 @@ export const README_WORKSPACE = `# Second Brain workspace
 This folder is your **local-first** Second Brain: notes, tasks, and projects live here as Markdown files.
 A small SQLite index under \`.second-brain/\` makes search and dashboards fast; the **files stay the source of truth**.
 
-Each entity file starts with YAML front matter under the \`second_brain\` key: stable \`id\`, \`kind\`, \`slug\`, and \`status\`.
+Each entity lives in a small folder package with \`index.md\` as the canonical note; YAML front matter under the \`second_brain\` key holds stable \`id\`, \`kind\`, \`slug\`, and \`status\`.
 
 ## PARA (how things are grouped)
 
@@ -43,7 +43,7 @@ second_brain:
 
 This is an **example area** — a long-lived bucket for life domains like health, family, or hobbies.
 
-Link projects, tasks, and notes here as you go. You can rename this file or add more areas anytime.
+Link projects, tasks, and notes here as you go. You can rename this folder or add more areas anytime.
 `;
 
 export const EXAMPLE_NOTE = `---
@@ -79,5 +79,5 @@ second_brain:
 
 Drop raw thoughts here before you sort them into areas, projects, or tasks.
 
-You can delete this file once you have your own rhythm.
+You can delete this capture folder once you have your own rhythm.
 `;

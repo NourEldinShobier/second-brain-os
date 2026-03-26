@@ -102,6 +102,16 @@ export async function runShow(command: Command, target: string): Promise<void> {
       from_id: e.fromEntityId,
       link_kind: e.linkKind,
     })),
+    assets: d.assets.map((a) => ({
+      id: a.id,
+      path: a.path,
+      original_filename: a.original_filename,
+      mime_type: a.mime_type,
+      imported_at: a.imported_at,
+      title: a.title ?? null,
+      description: a.description ?? null,
+      sha256: a.sha256 ?? null,
+    })),
     workspace_root: resolved.value.workspaceRoot,
   };
   const env = successEnvelope(data, [], ['Use `second-brain-os list inbox` when exploring.']);
@@ -117,6 +127,12 @@ export async function runShow(command: Command, target: string): Promise<void> {
     console.log(`- **status**: ${d.row.status}`);
     console.log(`- **path**: \`${d.row.file_path}\``);
     console.log(`- **id**: \`${d.row.id}\``);
+    if (d.assets.length > 0) {
+      console.log(`\n### Assets\n`);
+      for (const a of d.assets) {
+        console.log(`- \`${a.path}\` — ${a.title ?? a.original_filename}`);
+      }
+    }
     console.log(`\n### Body\n\n${d.body}\n`);
     return;
   }
@@ -126,6 +142,13 @@ export async function runShow(command: Command, target: string): Promise<void> {
     presentation.bodyLine(ctx, `Status: ${d.row.status}  ${d.row.archived ? '(archived)' : ''}`);
     presentation.bodyLine(ctx, `Path: ${d.row.file_path}`);
     presentation.bodyLine(ctx, `Links out: ${String(d.forward.length)} · Backlinks: ${String(d.backlinks.length)}`);
+    if (d.assets.length > 0) {
+      presentation.bodyLine(ctx, `Assets (${String(d.assets.length)}):`);
+      for (const a of d.assets) {
+        const label = a.title ?? a.original_filename;
+        presentation.bodyLine(ctx, `  • ${a.path} — ${label}`);
+      }
+    }
     presentation.bodyLine(ctx, '');
     presentation.bodyLine(ctx, d.body.slice(0, 2000) + (d.body.length > 2000 ? '…' : ''));
     presentation.suggestions(ctx, env.next_actions);

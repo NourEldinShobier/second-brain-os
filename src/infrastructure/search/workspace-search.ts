@@ -1,18 +1,23 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ListableEntityKind } from '../../domain/listable-kind.js';
+import { isDriveItemMarkdownPath } from '../indexing/drive-markdown-path.js';
 import { listIndexedMarkdownPaths } from '../indexing/list-markdown-files.js';
+import { parseDriveItemDocument } from '../markdown/parse-drive-item.js';
 import { parseMarkdownEntity } from '../markdown/parse-document.js';
 import type { SecondBrainDb } from '../db/open-database.js';
 import { listBacklinks, listForwardLinks } from '../relationships/entity-link-queries.js';
 
+/** Entity rows or vault drive packages (`item.md`). */
+export type SearchHitKind = ListableEntityKind | 'drive_item';
+
 export interface SearchHit {
-  readonly kind: ListableEntityKind;
+  readonly kind: SearchHitKind;
   readonly id: string;
   readonly slug: string;
   readonly title: string;
   readonly file_path: string;
-  readonly match: 'title' | 'body' | 'both';
+  readonly match: 'title' | 'body' | 'both' | 'asset_metadata' | 'description';
 }
 
 export async function searchWorkspaceMarkdown(
@@ -39,12 +44,44 @@ export async function searchWorkspaceMarkdown(
     } catch {
       continue;
     }
-    const lower = raw.toLowerCase();
-    if (!lower.includes(ql)) {
-      continue;
-    }
     const p = parseMarkdownEntity(raw);
     if (!p.ok) {
+      if (isDriveItemMarkdownPath(rel)) {
+        const d = parseDriveItemDocument(raw);
+        if (!d.ok) {
+          continue;
+        }
+        const meta = d.value.meta;
+        const titleHit = meta.title.toLowerCase().includes(ql);
+        const bodyHit = d.value.body.toLowerCase().includes(ql);
+        const descHit = (meta.description ?? '').toLowerCase().includes(ql);
+        if (!titleHit && !bodyHit && !descHit) {
+          continue;
+        }
+        let match: SearchHit['match'];
+        if (descHit && !titleHit && !bodyHit) {
+          match = 'description';
+        } else if (titleHit && bodyHit) {
+          match = 'both';
+        } else if (titleHit) {
+          match = 'title';
+        } else {
+          match = 'body';
+        }
+        const key = `drive_item:${meta.id}`;
+        if (seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        hits.push({
+          kind: 'drive_item',
+          id: meta.id,
+          slug: meta.slug,
+          title: meta.title,
+          file_path: rel,
+          match,
+        });
+      }
       continue;
     }
     const kind = p.value.meta.kind;
@@ -54,7 +91,26 @@ export async function searchWorkspaceMarkdown(
     const k = kind as ListableEntityKind;
     const titleHit = p.value.meta.title.toLowerCase().includes(ql);
     const bodyHit = p.value.body.toLowerCase().includes(ql);
-    const match: SearchHit['match'] = titleHit && bodyHit ? 'both' : titleHit ? 'title' : 'body';
+    const assetHit =
+      p.value.meta.assets?.some((a) => {
+        const parts = [a.title, a.description, a.original_filename, a.path].filter(
+          (x): x is string => typeof x === 'string' && x.length > 0,
+        );
+        return parts.some((x) => x.toLowerCase().includes(ql));
+      }) ?? false;
+    if (!titleHit && !bodyHit && !assetHit) {
+      continue;
+    }
+    let match: SearchHit['match'];
+    if (assetHit && !titleHit && !bodyHit) {
+      match = 'asset_metadata';
+    } else if (titleHit && bodyHit) {
+      match = 'both';
+    } else if (titleHit) {
+      match = 'title';
+    } else {
+      match = 'body';
+    }
     const key = `${k}:${p.value.meta.id}`;
     if (seen.has(key)) {
       continue;
@@ -84,22 +140,26 @@ export interface ExpandedLinkRow {
 export function expandSearchHitsWithLinks(db: SecondBrainDb, hits: readonly SearchHit[]): ExpandedLinkRow[] {
   const rows: ExpandedLinkRow[] = [];
   for (const h of hits) {
-    for (const e of listForwardLinks(db, h.kind, h.id)) {
+    if (h.kind === 'drive_item') {
+      continue;
+    }
+    const entityKind = h.kind;
+    for (const e of listForwardLinks(db, entityKind, h.id)) {
       rows.push({
         from_entity_id: h.id,
-        from_kind: h.kind,
+        from_kind: entityKind,
         direction: 'forward',
         to_entity_id: e.toEntityId,
         to_kind: e.toEntityType,
       });
     }
-    for (const e of listBacklinks(db, h.kind, h.id)) {
+    for (const e of listBacklinks(db, entityKind, h.id)) {
       rows.push({
         from_entity_id: e.fromEntityId,
         from_kind: e.fromEntityType,
         direction: 'backlink',
         to_entity_id: h.id,
-        to_kind: h.kind,
+        to_kind: entityKind,
       });
     }
   }

@@ -1,4 +1,4 @@
-import { access, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Result } from '../../domain/result.js';
 import { err, ok } from '../../domain/result.js';
@@ -13,9 +13,9 @@ export type SeedError = { readonly kind: 'io'; readonly message: string };
 
 const FILES: readonly { readonly rel: string; readonly body: string }[] = [
   { rel: 'README.md', body: README_WORKSPACE },
-  { rel: '01-areas/area-personal.md', body: EXAMPLE_AREA },
-  { rel: '06-notes/note-how-your-second-brain-works.md', body: EXAMPLE_NOTE },
-  { rel: '00-inbox/inbox-starter-capture.md', body: FIRST_CAPTURE },
+  { rel: '01-areas/personal/index.md', body: EXAMPLE_AREA },
+  { rel: '06-notes/how-your-second-brain-works/index.md', body: EXAMPLE_NOTE },
+  { rel: '00-inbox/2026-01-01-starter-capture/index.md', body: FIRST_CAPTURE },
 ];
 
 async function writeIfAbsent(root: string, rel: string, body: string): Promise<Result<true, SeedError>> {
@@ -25,6 +25,7 @@ async function writeIfAbsent(root: string, rel: string, body: string): Promise<R
     return ok(true);
   } catch {
     try {
+      await mkdir(path.dirname(full), { recursive: true });
       await writeFile(full, body, 'utf8');
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e);

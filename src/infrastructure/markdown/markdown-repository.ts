@@ -1,11 +1,17 @@
-import { copyFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { CoreEntityKind } from '../../domain/entity-kind.js';
-import { ACTIVE_FOLDER_BY_KIND, ARCHIVE_FOLDER_BY_KIND } from '../../domain/markdown/folders.js';
-import { buildEntityFilename, parseEntityFilename } from '../../domain/markdown/filename.js';
+import { ARCHIVE_FOLDER_BY_KIND } from '../../domain/markdown/folders.js';
+import { parseEntityDocumentRelativePath } from '../../domain/markdown/filename.js';
 import type { SecondBrainMeta } from '../../domain/markdown/second-brain-meta.js';
 import type { Result } from '../../domain/result.js';
 import { err, ok } from '../../domain/result.js';
+import {
+  activeEntityDocumentPath,
+  archivedEntityDocumentPath,
+  archivedEntityPackageDir,
+  ENTITY_INDEX_DOCUMENT,
+} from '../workspace/canonical-layout.js';
 import { type ParsedMarkdownEntity, parseMarkdownEntity, serializeMarkdownEntity } from './parse-document.js';
 
 export class MarkdownWorkspaceRepository {
@@ -35,6 +41,22 @@ export class MarkdownWorkspaceRepository {
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e);
       return err(`write failed: ${detail}`);
+    }
+    return ok(true);
+  }
+
+  /**
+   * Move a package directory within the workspace (entity folder containing `index.md`).
+   */
+  async moveEntityPackage(fromRelativeDir: string, toRelativeDir: string): Promise<Result<true, string>> {
+    const fromAbs = this.resolvePath(fromRelativeDir);
+    const toAbs = this.resolvePath(toRelativeDir);
+    try {
+      await mkdir(path.dirname(toAbs), { recursive: true });
+      await rename(fromAbs, toAbs);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      return err(`move failed: ${detail}`);
     }
     return ok(true);
   }
@@ -71,6 +93,7 @@ export class MarkdownWorkspaceRepository {
 
   /**
    * Move active entity into archive folder, mark `archived: true` (+ optional reason) in front matter.
+   * Moves the whole package directory when the source is `.../<slug>/index.md`.
    */
   async archiveEntity(
     relativePath: string,
@@ -81,16 +104,36 @@ export class MarkdownWorkspaceRepository {
     if (!read.ok) {
       return err(read.error);
     }
-    const base = path.basename(relativePath);
-    const destDir = ARCHIVE_FOLDER_BY_KIND[kind];
-    const newRelative = path.join(destDir, base).replace(/\\/g, '/');
     const nextMeta: SecondBrainMeta = {
       ...read.value.meta,
       archived: true,
       archived_at: new Date().toISOString(),
       archive_reason: options?.reason ?? null,
     };
-    const written = await this.writeEntity(newRelative, nextMeta, read.value.body);
+    const { body } = read.value;
+    const slug = nextMeta.slug;
+    const destDir = archivedEntityPackageDir(kind, slug);
+    const newRelative = archivedEntityDocumentPath(kind, slug);
+    const norm = relativePath.replace(/\\/g, '/');
+    const isPackage = norm.endsWith(`/${ENTITY_INDEX_DOCUMENT}`);
+
+    if (isPackage) {
+      const srcPkg = path.dirname(norm);
+      const fromAbs = this.resolvePath(srcPkg);
+      const toAbs = this.resolvePath(destDir);
+      try {
+        await mkdir(path.dirname(toAbs), { recursive: true });
+        await cp(fromAbs, toAbs, { recursive: true, force: true });
+        await writeFile(this.resolvePath(newRelative), serializeMarkdownEntity(nextMeta, body), 'utf8');
+        await rm(fromAbs, { recursive: true, force: true });
+      } catch (e) {
+        const detail = e instanceof Error ? e.message : String(e);
+        return err(`archive failed: ${detail}`);
+      }
+      return ok({ newRelativePath: newRelative });
+    }
+
+    const written = await this.writeEntity(newRelative, nextMeta, body);
     if (!written.ok) {
       return written;
     }
@@ -125,32 +168,41 @@ export class MarkdownWorkspaceRepository {
       return err(`Expected file under ${expectPrefix}, got ${archiveRelativePath}`);
     }
 
-    const base = path.basename(archiveRelativePath);
-    const parsed = parseEntityFilename(base);
+    const parsed = parseEntityDocumentRelativePath(archiveRelativePath);
     if ('error' in parsed) {
-      return err(`Bad archive filename: ${parsed.error}`);
+      return err(parsed.error);
     }
     if (parsed.kind !== kind) {
-      return err(`Filename kind ${parsed.kind} does not match metadata kind ${kind}`);
+      return err(`Path kind ${parsed.kind} does not match metadata kind ${kind}`);
     }
 
-    let newRelative: string;
-    if (kind === 'inbox_item') {
-      if (parsed.kind === 'inbox_item' && parsed.inboxDate !== undefined) {
-        newRelative = this.activeEntityPath('inbox_item', meta.slug, parsed.inboxDate);
-      } else {
-        newRelative = this.activeEntityPath('inbox_item', meta.slug);
-      }
-    } else {
-      newRelative = this.activeEntityPath(kind, meta.slug);
-    }
-
+    const inboxDate = parsed.kind === 'inbox_item' ? parsed.inboxDate : undefined;
+    const newRelative = activeEntityDocumentPath(kind, meta.slug, inboxDate);
     const nextMeta: SecondBrainMeta = {
       ...meta,
       archived: false,
       archived_at: null,
       archive_reason: null,
     };
+
+    const isPackage = norm.endsWith(`/${ENTITY_INDEX_DOCUMENT}`);
+
+    if (isPackage) {
+      const srcPkg = path.dirname(norm);
+      const destDir = path.dirname(newRelative);
+      const fromAbs = this.resolvePath(srcPkg);
+      const toAbs = this.resolvePath(destDir);
+      try {
+        await mkdir(path.dirname(toAbs), { recursive: true });
+        await cp(fromAbs, toAbs, { recursive: true, force: true });
+        await writeFile(this.resolvePath(newRelative), serializeMarkdownEntity(nextMeta, body), 'utf8');
+        await rm(fromAbs, { recursive: true, force: true });
+      } catch (e) {
+        const detail = e instanceof Error ? e.message : String(e);
+        return err(`restore failed: ${detail}`);
+      }
+      return ok({ newRelativePath: newRelative });
+    }
 
     const w = await this.writeEntity(newRelative, nextMeta, body);
     if (!w.ok) {
@@ -165,17 +217,12 @@ export class MarkdownWorkspaceRepository {
     return ok({ newRelativePath: newRelative });
   }
 
-  /** Build default relative path for a new active entity. */
+  /** Build default relative path to the canonical Markdown file for a new active entity. */
   activeEntityPath(
     kind: Exclude<CoreEntityKind, 'archive_record'>,
     slug: string,
     inboxDate?: string,
   ): string {
-    const folder = ACTIVE_FOLDER_BY_KIND[kind];
-    const name =
-      kind === 'inbox_item' && inboxDate !== undefined
-        ? buildEntityFilename(kind, slug, { inboxDate })
-        : buildEntityFilename(kind, slug);
-    return path.join(folder, name).replace(/\\/g, '/');
+    return activeEntityDocumentPath(kind, slug, inboxDate);
   }
 }

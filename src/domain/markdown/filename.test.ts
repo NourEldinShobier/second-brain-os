@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildEntityFilename, parseEntityFilename } from './filename.js';
+import { buildEntityFilename, parseEntityDocumentRelativePath, parseEntityFilename } from './filename.js';
 
 describe('parseEntityFilename', () => {
   it('parses typed prefixes and dated inbox files', () => {
@@ -25,5 +25,31 @@ describe('buildEntityFilename', () => {
     expect(buildEntityFilename('inbox_item', 'cap', { inboxDate: '2026-01-02' })).toBe(
       '2026-01-02-cap.md',
     );
+  });
+});
+
+describe('parseEntityDocumentRelativePath', () => {
+  it('parses package index paths and legacy flat files', () => {
+    expect(parseEntityDocumentRelativePath('04-tasks/my-task/index.md')).toMatchObject({
+      kind: 'task',
+      slug: 'my-task',
+    });
+    expect(parseEntityDocumentRelativePath('00-inbox/2026-01-02-cap/index.md')).toMatchObject({
+      kind: 'inbox_item',
+      slug: 'cap',
+      inboxDate: '2026-01-02',
+    });
+    expect(parseEntityDocumentRelativePath('00-inbox/inbox-notes/index.md')).toMatchObject({
+      kind: 'inbox_item',
+      slug: 'notes',
+    });
+    expect(parseEntityDocumentRelativePath('99-archive/tasks/foo/index.md')).toMatchObject({
+      kind: 'task',
+      slug: 'foo',
+    });
+    expect(parseEntityDocumentRelativePath('04-tasks/task-legacy.md')).toMatchObject({
+      kind: 'task',
+      slug: 'legacy',
+    });
   });
 });

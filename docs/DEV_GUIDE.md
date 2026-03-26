@@ -86,6 +86,12 @@ npx second-brain-os --help
 
 **Layering:** Prefer adding behavior in **application** + **infrastructure** with thin **CLI** adapters. Keep **`src/shared/envelope.ts`** as the single place for JSON response shape when touching outputs.
 
+**Vault entity layout (Markdown):** Active core entities live as folder packages under each PARA root: `<kind-root>/<slug>/index.md` (for example `04-tasks/my-task/index.md`). Inbox dated captures use `00-inbox/<YYYY-MM-DD>-<slug>/index.md`; undated inbox uses `00-inbox/inbox-<slug>/index.md`. Archived entities use the same package shape under `99-archive/...`. SQLite **`file_path`** columns store the path to the canonical **`index.md`** file (not the package directory alone). Path helpers: **`src/infrastructure/workspace/canonical-layout.ts`**.
+
+**Entity assets:** Files for area/goal/project/task/resource/note live under `<package>/assets/` with a manifest in front matter (`second_brain.assets`). The CLI exposes **`second-brain-os asset add|list|remove`**; SQLite **`entity_assets`** is derivative (rebuilt on reindex from manifests).
+
+**Vault drive:** Imported files and folders live under **`07-drive/items/<slug>/`**: canonical metadata is **`item.md`** (front matter key `drive_item`), payload copies live under **`files/`**. Archived drive packages use **`99-archive/drive/<slug>/`** with the same shape. CLI: **`second-brain-os drive import|list|show|link|update|archive|restore`**; relationship ids (`area_ids`, `project_ids`, etc.) are the durable source in front matter and are mirrored in SQLite. **`resolveDriveLinkTargetRef`** in **`resolve-entity-ref.ts`** rejects archived targets. Helpers: **`driveItemDocumentPath`**, **`archivedDriveItemDocumentPath`** in **`canonical-layout.ts`**.
+
 ---
 
 ## 6. Database and migrations

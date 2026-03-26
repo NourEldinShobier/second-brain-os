@@ -1,4 +1,5 @@
-import { unlink } from 'node:fs/promises';
+import path from 'node:path';
+import { rm } from 'node:fs/promises';
 import { desc, eq } from 'drizzle-orm';
 import { analyzeInboxText } from '../domain/organize/inbox-heuristics.js';
 import type { SecondBrainMeta } from '../domain/markdown/second-brain-meta.js';
@@ -164,9 +165,9 @@ export async function promoteInboxItem(
   }
 
   try {
-    await unlink(repo.resolvePath(inboxRow.value.file_path));
+    await rm(path.dirname(repo.resolvePath(inboxRow.value.file_path)), { recursive: true, force: true });
   } catch (e) {
-    return err(`Created entity but could not remove inbox file: ${e instanceof Error ? e.message : String(e)}`);
+    return err(`Created entity but could not remove inbox package: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   db.delete(schema.inboxItems).where(eq(schema.inboxItems.id, inboxRow.value.id)).run();

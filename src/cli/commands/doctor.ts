@@ -1,5 +1,10 @@
 import type { Command } from 'commander';
-import { pruneOrphanIndexRows, runDoctorDiagnostics } from '../../application/doctor-service.js';
+import {
+  pruneOrphanDriveItemRows,
+  pruneOrphanIndexRows,
+  pruneStaleEntityAssetRows,
+  runDoctorDiagnostics,
+} from '../../application/doctor-service.js';
 import { closeSecondBrainDatabase, openAndMigrate } from '../../infrastructure/db/open-database.js';
 import { cliFailed, emitQuietFallback } from '../cli-feedback.js';
 import { commandContextFrom } from '../context.js';
@@ -48,8 +53,12 @@ export async function runDoctor(command: Command): Promise<void> {
     const diagnostics = await runDoctorDiagnostics(resolved.value.workspaceRoot, db);
 
     let pruned = 0;
+    let prunedAssets = 0;
+    let prunedDrive = 0;
     if (opts.repair === true && !ctx.dryRun) {
       pruned = pruneOrphanIndexRows(resolved.value.workspaceRoot, db);
+      prunedAssets = pruneStaleEntityAssetRows(resolved.value.workspaceRoot, db);
+      prunedDrive = pruneOrphanDriveItemRows(resolved.value.workspaceRoot, db);
     }
 
     const errors = diagnostics.findings.filter((f) => f.severity === 'error');
@@ -73,7 +82,15 @@ export async function runDoctor(command: Command): Promise<void> {
         detail: f.detail ?? null,
       })),
       reindex_drift: diagnostics.reindex_drift,
-      repair: opts.repair === true ? { pruned_orphan_index_rows: pruned, dry_run: ctx.dryRun } : null,
+      repair:
+        opts.repair === true
+          ? {
+              pruned_orphan_index_rows: pruned,
+              pruned_stale_asset_rows: prunedAssets,
+              pruned_orphan_drive_rows: prunedDrive,
+              dry_run: ctx.dryRun,
+            }
+          : null,
     };
 
     const nextActions: string[] = [
@@ -96,7 +113,9 @@ export async function runDoctor(command: Command): Promise<void> {
         console.log(`- **${f.severity}** [\`${f.category}\`] ${f.message}`);
       }
       if (opts.repair === true) {
-        console.log(`\nRepair: pruned **${String(pruned)}** orphan index row(s).`);
+        console.log(
+          `\nRepair: pruned **${String(pruned)}** orphan entity row(s), **${String(prunedAssets)}** stale asset row(s), **${String(prunedDrive)}** orphan drive row(s).`,
+        );
       }
       console.log('');
       return;
@@ -116,7 +135,10 @@ export async function runDoctor(command: Command): Promise<void> {
         presentation.bodyLine(ctx, `  … and ${String(diagnostics.findings.length - 40)} more (use --format json)`);
       }
       if (opts.repair === true) {
-        presentation.bodyLine(ctx, `Repair: pruned ${String(pruned)} orphan index row(s).`);
+        presentation.bodyLine(
+          ctx,
+          `Repair: pruned ${String(pruned)} orphan entity row(s), ${String(prunedAssets)} stale asset row(s), ${String(prunedDrive)} orphan drive row(s).`,
+        );
       }
       presentation.suggestions(ctx, env.next_actions);
     }

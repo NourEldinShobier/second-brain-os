@@ -71,3 +71,105 @@ export function resolveProjectIds(db: SecondBrainDb, refs: readonly string[]): R
   }
   return ok(ids);
 }
+
+export function resolveTaskId(db: SecondBrainDb, ref: string): Result<string, string> {
+  const r = ref.trim();
+  if (r.length === 0) {
+    return err('Empty task reference');
+  }
+  if (isUuid(r)) {
+    const row = db.select().from(schema.tasks).where(eq(schema.tasks.id, r)).get();
+    if (row === undefined) {
+      return err(`Unknown task id: ${r}`);
+    }
+    return ok(r);
+  }
+  const row = db.select().from(schema.tasks).where(eq(schema.tasks.slug, r)).get();
+  if (row === undefined) {
+    return err(`Unknown task slug: ${r}`);
+  }
+  return ok(row.id);
+}
+
+export function resolveNoteId(db: SecondBrainDb, ref: string): Result<string, string> {
+  const r = ref.trim();
+  if (r.length === 0) {
+    return err('Empty note reference');
+  }
+  if (isUuid(r)) {
+    const row = db.select().from(schema.notes).where(eq(schema.notes.id, r)).get();
+    if (row === undefined) {
+      return err(`Unknown note id: ${r}`);
+    }
+    return ok(r);
+  }
+  const row = db.select().from(schema.notes).where(eq(schema.notes.slug, r)).get();
+  if (row === undefined) {
+    return err(`Unknown note slug: ${r}`);
+  }
+  return ok(row.id);
+}
+
+export function resolveGoalId(db: SecondBrainDb, ref: string): Result<string, string> {
+  const r = ref.trim();
+  if (r.length === 0) {
+    return err('Empty goal reference');
+  }
+  if (isUuid(r)) {
+    const row = db.select().from(schema.goals).where(eq(schema.goals.id, r)).get();
+    if (row === undefined) {
+      return err(`Unknown goal id: ${r}`);
+    }
+    return ok(r);
+  }
+  const row = db.select().from(schema.goals).where(eq(schema.goals.slug, r)).get();
+  if (row === undefined) {
+    return err(`Unknown goal slug: ${r}`);
+  }
+  return ok(row.id);
+}
+
+export type DriveLinkableKind = 'area' | 'project' | 'task' | 'note' | 'goal';
+
+/** Resolve a slug or id for drive item links; rejects archived entities. */
+export function resolveDriveLinkTargetRef(
+  db: SecondBrainDb,
+  kind: DriveLinkableKind,
+  ref: string,
+): Result<string, string> {
+  const idResult =
+    kind === 'area'
+      ? resolveAreaId(db, ref)
+      : kind === 'project'
+        ? resolveProjectId(db, ref)
+        : kind === 'task'
+          ? resolveTaskId(db, ref)
+          : kind === 'note'
+            ? resolveNoteId(db, ref)
+            : resolveGoalId(db, ref);
+  if (!idResult.ok) {
+    return idResult;
+  }
+  const id = idResult.value;
+  const archived =
+    kind === 'area'
+      ? db.select({ archived: schema.areas.archived }).from(schema.areas).where(eq(schema.areas.id, id)).get()?.archived
+      : kind === 'project'
+        ? db
+            .select({ archived: schema.projects.archived })
+            .from(schema.projects)
+            .where(eq(schema.projects.id, id))
+            .get()?.archived
+        : kind === 'task'
+          ? db.select({ archived: schema.tasks.archived }).from(schema.tasks).where(eq(schema.tasks.id, id)).get()
+              ?.archived
+          : kind === 'note'
+            ? db.select({ archived: schema.notes.archived }).from(schema.notes).where(eq(schema.notes.id, id)).get()
+                ?.archived
+            : db.select({ archived: schema.goals.archived }).from(schema.goals).where(eq(schema.goals.id, id)).get()
+                ?.archived;
+  if (archived === true) {
+    return err(`Cannot link to archived ${kind}: ${ref}`);
+  }
+  return ok(id);
+}
