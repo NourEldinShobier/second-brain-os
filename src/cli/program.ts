@@ -279,9 +279,60 @@ export function createProgram(): Command {
     .command('list')
     .description('List drive items from the index')
     .option('--include-archived', 'include archived drive items', false)
-    .action(async (opts: { includeArchived?: boolean }, command: Command) => {
-      await runDriveList(command, opts);
-    });
+    .option(
+      '--area <ref>',
+      'filter by area id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option(
+      '--project <ref>',
+      'filter by project id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option(
+      '--task <ref>',
+      'filter by task id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option(
+      '--note <ref>',
+      'filter by note id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option(
+      '--goal <ref>',
+      'filter by goal id or slug (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option(
+      '--tag <tag>',
+      'filter by tag (repeatable)',
+      (value: string, previous: string[]) => [...previous, value],
+      [] as string[],
+    )
+    .option('--standalone <bool>', 'filter by standalone status: true or false')
+    .action(
+      async (
+        opts: {
+          includeArchived?: boolean;
+          area?: string[];
+          project?: string[];
+          task?: string[];
+          note?: string[];
+          goal?: string[];
+          tag?: string[];
+          standalone?: 'true' | 'false';
+        },
+        command: Command,
+      ) => {
+        await runDriveList(command, opts);
+      },
+    );
 
   driveCmd
     .command('show')

@@ -10,6 +10,7 @@ import {
   parseDriveLinkClearKinds,
   restoreDriveItem,
   updateDriveItemMetadata,
+  type DriveListFilters,
 } from '../../application/drive-vault-service.js';
 import { closeSecondBrainDatabase, openAndMigrate } from '../../infrastructure/db/open-database.js';
 import { DRIVE_PAYLOAD_DIR } from '../../infrastructure/workspace/canonical-layout.js';
@@ -84,7 +85,19 @@ export async function runDriveImport(
   }
 }
 
-export async function runDriveList(command: Command, opts: { includeArchived?: boolean }): Promise<void> {
+export async function runDriveList(
+  command: Command,
+  opts: {
+    includeArchived?: boolean;
+    area?: string[];
+    project?: string[];
+    task?: string[];
+    note?: string[];
+    goal?: string[];
+    tag?: string[];
+    standalone?: 'true' | 'false';
+  },
+): Promise<void> {
   const ctx = commandContextFrom(command);
   const resolved = await resolveWorkspaceForCli(ctx);
   if (!resolved.ok) {
@@ -100,7 +113,17 @@ export async function runDriveList(command: Command, opts: { includeArchived?: b
   }
   const db = openAndMigrate(resolved.value.databaseAbsolutePath);
   try {
-    const rows = listDriveItems(db, opts.includeArchived === true);
+    const filters: DriveListFilters = {
+      includeArchived: opts.includeArchived === true,
+      areaIds: opts.area !== undefined ? (opts.area.length > 0 ? opts.area : undefined) : undefined,
+      projectIds: opts.project !== undefined ? (opts.project.length > 0 ? opts.project : undefined) : undefined,
+      taskIds: opts.task !== undefined ? (opts.task.length > 0 ? opts.task : undefined) : undefined,
+      noteIds: opts.note !== undefined ? (opts.note.length > 0 ? opts.note : undefined) : undefined,
+      goalIds: opts.goal !== undefined ? (opts.goal.length > 0 ? opts.goal : undefined) : undefined,
+      tags: opts.tag !== undefined ? (opts.tag.length > 0 ? opts.tag : undefined) : undefined,
+      standalone: opts.standalone === 'true' ? true : opts.standalone === 'false' ? false : undefined,
+    };
+    const rows = listDriveItems(db, filters);
     const env = successEnvelope(
       { items: rows, workspace_root: resolved.value.workspaceRoot },
       [],

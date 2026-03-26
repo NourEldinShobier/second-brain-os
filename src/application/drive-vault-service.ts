@@ -87,6 +87,7 @@ export async function importDrivePayload(
     readonly description?: string;
     readonly move?: boolean;
     readonly dryRun?: boolean;
+    readonly tags?: readonly string[];
   },
 ): Promise<Result<{ readonly slug: string; readonly relPath: string; readonly meta: DriveItemMeta }, string>> {
   const root = path.resolve(workspaceRoot);
@@ -121,6 +122,7 @@ export async function importDrivePayload(
       original_name: originalName,
       source_path: absSource,
       imported_at: importedAt,
+      ...(options.tags !== undefined && options.tags.length > 0 ? { tags: [...options.tags] } : {}),
     };
     return ok({ slug, relPath: driveItemDocumentPath(slug), meta });
   }
@@ -167,6 +169,7 @@ export async function importDrivePayload(
     mime_type: mime,
     sha256: sha,
     ...(isDir ? { child_count: childCount ?? 0 } : {}),
+    ...(options?.tags !== undefined && options.tags.length > 0 ? { tags: [...options.tags] } : {}),
   };
 
   const relPath = driveItemDocumentPath(slug);
@@ -181,11 +184,95 @@ export async function importDrivePayload(
   return ok({ slug, relPath, meta });
 }
 
-export function listDriveItems(db: SecondBrainDb, includeArchived: boolean): typeof schema.driveItems.$inferSelect[] {
-  if (includeArchived) {
-    return db.select().from(schema.driveItems).all();
+export interface DriveListFilters {
+  readonly includeArchived: boolean;
+  readonly areaIds?: string[] | undefined;
+  readonly projectIds?: string[] | undefined;
+  readonly taskIds?: string[] | undefined;
+  readonly noteIds?: string[] | undefined;
+  readonly goalIds?: string[] | undefined;
+  readonly tags?: string[] | undefined;
+  /** Standalone (no links). If false, returns all regardless of link state. */
+  readonly standalone?: boolean | undefined;
+}
+
+function jsonArrayHasAny(json: string | null, ids: readonly string[]): boolean {
+  if (!json || ids.length === 0) return false;
+  try {
+    const arr = JSON.parse(json) as string[];
+    return ids.some((id) => arr.includes(id));
+  } catch {
+    return false;
   }
-  return db.select().from(schema.driveItems).where(eq(schema.driveItems.archived, false)).all();
+}
+
+function jsonArrayHasAllTags(json: string | null, tags: readonly string[]): boolean {
+  if (!json || tags.length === 0) return false;
+  try {
+    const arr = JSON.parse(json) as string[];
+    return tags.every((t) => arr.includes(t));
+  } catch {
+    return false;
+  }
+}
+
+function hasNoLinks(row: typeof schema.driveItems.$inferSelect): boolean {
+  return (
+    (row.area_ids_json ?? '').length === 0 &&
+    (row.project_ids_json ?? '').length === 0 &&
+    (row.task_ids_json ?? '').length === 0 &&
+    (row.note_ids_json ?? '').length === 0 &&
+    (row.goal_ids_json ?? '').length === 0
+  );
+}
+
+export function listDriveItems(db: SecondBrainDb, filters: DriveListFilters): typeof schema.driveItems.$inferSelect[] {
+  let rows: typeof schema.driveItems.$inferSelect[];
+  if (filters.includeArchived) {
+    rows = db.select().from(schema.driveItems).all();
+  } else {
+    rows = db.select().from(schema.driveItems).where(eq(schema.driveItems.archived, false)).all();
+  }
+
+  if (
+    filters.areaIds === undefined &&
+    filters.projectIds === undefined &&
+    filters.taskIds === undefined &&
+    filters.noteIds === undefined &&
+    filters.goalIds === undefined &&
+    (filters.tags === undefined || filters.tags.length === 0) &&
+    filters.standalone === undefined
+  ) {
+    return rows;
+  }
+
+  return rows.filter((row) => {
+    if (filters.areaIds !== undefined && filters.areaIds.length > 0) {
+      if (!jsonArrayHasAny(row.area_ids_json, filters.areaIds)) return false;
+    }
+    if (filters.projectIds !== undefined && filters.projectIds.length > 0) {
+      if (!jsonArrayHasAny(row.project_ids_json, filters.projectIds)) return false;
+    }
+    if (filters.taskIds !== undefined && filters.taskIds.length > 0) {
+      if (!jsonArrayHasAny(row.task_ids_json, filters.taskIds)) return false;
+    }
+    if (filters.noteIds !== undefined && filters.noteIds.length > 0) {
+      if (!jsonArrayHasAny(row.note_ids_json, filters.noteIds)) return false;
+    }
+    if (filters.goalIds !== undefined && filters.goalIds.length > 0) {
+      if (!jsonArrayHasAny(row.goal_ids_json, filters.goalIds)) return false;
+    }
+    if (filters.tags !== undefined && filters.tags.length > 0) {
+      if (!jsonArrayHasAllTags(row.tags_json, filters.tags)) return false;
+    }
+    if (filters.standalone === true) {
+      if (!hasNoLinks(row)) return false;
+    }
+    if (filters.standalone === false) {
+      if (hasNoLinks(row)) return false;
+    }
+    return true;
+  });
 }
 
 export function findDriveItemByRef(

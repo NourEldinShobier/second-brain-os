@@ -5,9 +5,12 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { openAndMigrate } from '../infrastructure/db/open-database.js';
 import * as schema from '../infrastructure/db/schema.js';
+import { MarkdownWorkspaceRepository } from '../infrastructure/markdown/markdown-repository.js';
 import { ensureCanonicalLayout } from '../infrastructure/workspace/create-layout.js';
 import { reindexWorkspace } from '../infrastructure/indexing/reindex-workspace.js';
+import { EntityCrudService } from './entity-crud-service.js';
 import {
+  applyDriveItemLinks,
   archiveDriveItem,
   findDriveItemByRef,
   importDrivePayload,
@@ -32,22 +35,22 @@ describe('drive vault service', () => {
     if (!imp.ok) return;
     expect(imp.value.slug).toMatch(/^my-note/);
 
-    const listed = listDriveItems(db, false);
+    const listed = listDriveItems(db, { includeArchived: false });
     expect(listed.length).toBe(1);
     expect(listed[0]?.slug).toBe(imp.value.slug);
 
     const arch = await archiveDriveItem(root, db, imp.value.slug, 'done');
     expect(arch.ok).toBe(true);
 
-    const listedArchived = listDriveItems(db, false);
+    const listedArchived = listDriveItems(db, { includeArchived: false });
     expect(listedArchived.length).toBe(0);
-    const listedAll = listDriveItems(db, true);
+    const listedAll = listDriveItems(db, { includeArchived: true });
     expect(listedAll.length).toBe(1);
     expect(listedAll[0]?.archived).toBe(true);
 
     const rest = await restoreDriveItem(root, db, imp.value.slug);
     expect(rest.ok).toBe(true);
-    const active = listDriveItems(db, false);
+    const active = listDriveItems(db, { includeArchived: false });
     expect(active.length).toBe(1);
     expect(active[0]?.archived).toBe(false);
 
@@ -98,5 +101,53 @@ describe('drive vault service', () => {
     const row = db.select().from(schema.driveItems).where(eq(schema.driveItems.slug, imp.value.slug)).get();
     expect(row?.item_type).toBe('folder');
     expect(row?.child_count).toBe(2);
+  });
+
+  it('listDriveItems filters by area, project, tags, and standalone', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'sb-drive-fi-'));
+    await ensureCanonicalLayout(root);
+    const dbPath = path.join(root, '.second-brain', 'second-brain.db');
+    await mkdir(path.dirname(dbPath), { recursive: true });
+    const db = openAndMigrate(dbPath);
+    const repo = new MarkdownWorkspaceRepository(root);
+    const entities = new EntityCrudService(repo, db);
+    const area = await entities.createArea({ title: 'A', slug: 'f-area' });
+    expect(area.ok).toBe(true);
+    if (!area.ok) return;
+
+    const f1 = path.join(root, 'f1.txt');
+    await writeFile(f1, 'x');
+    const imp1 = await importDrivePayload(root, db, f1, { title: 'NoLinks', tags: ['tag1'] });
+    expect(imp1.ok).toBe(true);
+    if (!imp1.ok) return;
+
+    const f2 = path.join(root, 'f2.txt');
+    await writeFile(f2, 'y');
+    const imp2 = await importDrivePayload(root, db, f2, { title: 'WithArea' });
+    expect(imp2.ok).toBe(true);
+    if (!imp2.ok) return;
+
+    await applyDriveItemLinks(
+      root,
+      db,
+      imp2.value.slug,
+      { append: { areas: ['f-area'] }, replace: false, clearKinds: [], dryRun: false },
+      false,
+    );
+
+    const all = listDriveItems(db, { includeArchived: false });
+    expect(all.length).toBe(2);
+
+    const byArea = listDriveItems(db, { includeArchived: false, areaIds: [area.value.meta.id] });
+    expect(byArea.length).toBe(1);
+    expect(byArea[0]?.slug).toBe(imp2.value.slug);
+
+    const standalone = listDriveItems(db, { includeArchived: false, standalone: true });
+    expect(standalone.length).toBe(1);
+    expect(standalone[0]?.slug).toBe(imp1.value.slug);
+
+    const byTag = listDriveItems(db, { includeArchived: false, tags: ['tag1'] });
+    expect(byTag.length).toBe(1);
+    expect(byTag[0]?.slug).toBe(imp1.value.slug);
   });
 });
