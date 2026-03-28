@@ -32,7 +32,6 @@ export function replaceOutgoingLinks(
         to_entity_id: e.toId,
         link_kind: e.linkKind,
         created_at: createdAt,
-        created_by: null,
       })
       .run();
   }

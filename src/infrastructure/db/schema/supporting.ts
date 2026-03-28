@@ -1,4 +1,4 @@
-import { index, sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
+import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const workspaceKv = sqliteTable('workspace_kv', {
   key: text('key').primaryKey().notNull(),
@@ -44,7 +44,6 @@ export const entityLinks = sqliteTable(
     to_entity_id: text('to_entity_id').notNull(),
     link_kind: text('link_kind').notNull(),
     created_at: text('created_at').notNull(),
-    created_by: text('created_by'),
   },
   (t) => [
     index('entity_links_from_idx').on(t.from_entity_type, t.from_entity_id),
@@ -81,16 +80,4 @@ export const reviews = sqliteTable(
   (t) => [index('reviews_kind_idx').on(t.review_kind)],
 );
 
-export const aiOperations = sqliteTable(
-  'ai_operations',
-  {
-    id: text('id').primaryKey(),
-    provider: text('provider'),
-    action: text('action').notNull(),
-    confidence: real('confidence'),
-    rationale: text('rationale'),
-    metadata_json: text('metadata_json'),
-    created_at: text('created_at').notNull(),
-  },
-  (t) => [index('ai_operations_created_idx').on(t.created_at)],
-);
+

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import * as schema from '../db/schema.js';
-import { createTestWorkspace } from '../../test-support/workspace-fixture.js';
 import { createAiService } from './create-ai-service.js';
-import { OpenAiStubAiService } from './openai-stub-ai-service.js';
 
 describe('createAiService', () => {
   it('uses DisabledAiService when ai_provider is null', async () => {
@@ -17,20 +14,15 @@ describe('createAiService', () => {
     }
   });
 
-  it('OpenAiStubAiService logs explain operations to ai_operations', async () => {
-    const ws = await createTestWorkspace({ ai_provider: 'openai' });
-    try {
-      const ai = new OpenAiStubAiService(ws.db);
-      const r = await ai.explain({ text: 'x'.repeat(12) });
-      expect(r.ok).toBe(true);
-
-      const rows = ws.db.select().from(schema.aiOperations).all();
-      expect(rows.length).toBe(1);
-      expect(rows[0]?.action).toBe('explain');
-      expect(rows[0]?.provider).toBe('openai');
-      expect(rows[0]?.metadata_json).toContain('12');
-    } finally {
-      await ws.cleanup();
+  it('uses OpenAiStubAiService when ai_provider is openai', async () => {
+    const ai = createAiService(undefined, 'openai');
+    expect(ai.mode).toBe('stub');
+    expect(ai.providerId).toBe('openai');
+    const r = await ai.explain({ text: 'test input' });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.text).toContain('not implemented');
+      expect(r.value.confidence).toBe(0);
     }
   });
 });

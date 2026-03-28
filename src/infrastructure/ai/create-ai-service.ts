@@ -5,9 +5,9 @@ import { DisabledAiService } from './disabled-ai-service.js';
 import { OpenAiStubAiService } from './openai-stub-ai-service.js';
 
 /** Only `openai` is supported; any other value is treated as disabled. */
-export function createAiService(db: SecondBrainDb | undefined, aiProvider: AiProviderId | null | undefined): AiService {
+export function createAiService(_db: SecondBrainDb | undefined, aiProvider: AiProviderId | null | undefined): AiService {
   if (aiProvider !== 'openai') {
     return new DisabledAiService();
   }
-  return new OpenAiStubAiService(db);
+  return new OpenAiStubAiService();
 }
