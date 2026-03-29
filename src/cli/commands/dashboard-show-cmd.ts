@@ -84,8 +84,6 @@ export async function runDashboardShow(command: Command): Promise<void> {
     })),
     recent_notes: dash.recentNotes.map(listedRowJson),
     recent_resources: dash.recentResources.map(listedRowJson),
-
-    last_weekly_review: dash.lastWeeklyReview,
   };
 
   const env = successEnvelope(data, warningsWhenAiDisabled(resolved.value.config), [
@@ -107,7 +105,9 @@ export async function runDashboardShow(command: Command): Promise<void> {
       }
       console.log('');
     }
-    console.log(`_Generated for **${dash.daily.date}** · upcoming task window ${String(upcomingDays)} day(s)._\n`);
+    console.log(
+      `_Generated for **${dash.daily.date}** · upcoming task window ${String(upcomingDays)} day(s)._\n`,
+    );
     console.log('## Inbox\n');
     console.log(`- **${String(dash.daily.inboxCount)}** item(s) in inbox\n`);
     console.log('## Today surface\n');
@@ -149,14 +149,6 @@ export async function runDashboardShow(command: Command): Promise<void> {
     for (const r of dash.recentResources) {
       console.log(`- \`${r.slug}\` — ${r.title}`);
     }
-
-    console.log('### Weekly review\n');
-    if (dash.lastWeeklyReview === null) {
-      console.log('- _No weekly review logged yet._\n');
-    } else {
-      console.log(`- Last started: \`${dash.lastWeeklyReview.startedAt}\``);
-      console.log(`- Completed: ${dash.lastWeeklyReview.completedAt ?? '_open_'}\n`);
-    }
     return;
   }
 
@@ -177,16 +169,10 @@ export async function runDashboardShow(command: Command): Promise<void> {
       presentation.bodyLine(ctx, `  ${g.goal.slug} — ${String(g.percent)}% (${g.basis})`);
     }
     presentation.bodyLine(ctx, '');
-    presentation.bodyLine(ctx, `Recent notes: ${String(dash.recentNotes.length)} · Recent resources: ${String(dash.recentResources.length)}`);
-    presentation.bodyLine(ctx, '');
-    if (dash.lastWeeklyReview === null) {
-      presentation.bodyLine(ctx, 'Weekly review: none logged yet');
-    } else {
-      presentation.bodyLine(
-        ctx,
-        `Weekly review: last ${dash.lastWeeklyReview.startedAt}${dash.lastWeeklyReview.completedAt ? ' (completed)' : ' (in progress)'}`,
-      );
-    }
+    presentation.bodyLine(
+      ctx,
+      `Recent notes: ${String(dash.recentNotes.length)} · Recent resources: ${String(dash.recentResources.length)}`,
+    );
     presentation.suggestions(ctx, env.next_actions);
   }
 }

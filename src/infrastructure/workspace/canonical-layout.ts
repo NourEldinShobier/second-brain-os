@@ -18,8 +18,6 @@ export const CANONICAL_RELATIVE_DIRS: readonly string[] = [
   '05-resources',
   '06-notes',
   '07-drive/items',
-  '07-reviews/daily',
-  '07-reviews/weekly',
   '99-archive/drive',
   '99-archive/inbox',
   '99-archive/areas',
@@ -60,7 +58,11 @@ type ActiveEntityKind = CoreEntityKind;
 /**
  * Folder segment under the kind root (e.g. `my-task` or `2026-01-02-my-capture` for dated inbox).
  */
-export function entityPackageFolderSegment(kind: ActiveEntityKind, slug: string, inboxDate?: string): string {
+export function entityPackageFolderSegment(
+  kind: ActiveEntityKind,
+  slug: string,
+  inboxDate?: string,
+): string {
   if (kind === 'inbox_item' && inboxDate !== undefined) {
     return `${inboxDate}-${slug}`;
   }
@@ -71,15 +73,25 @@ export function entityPackageFolderSegment(kind: ActiveEntityKind, slug: string,
 }
 
 /** Workspace-relative package directory for an active entity (no trailing slash). */
-export function activeEntityPackageDir(kind: ActiveEntityKind, slug: string, inboxDate?: string): string {
+export function activeEntityPackageDir(
+  kind: ActiveEntityKind,
+  slug: string,
+  inboxDate?: string,
+): string {
   const root = ACTIVE_FOLDER_BY_KIND[kind];
   const seg = entityPackageFolderSegment(kind, slug, inboxDate);
   return path.join(root, seg).replace(/\\/g, '/');
 }
 
 /** Workspace-relative path to the canonical Markdown file for an active entity. */
-export function activeEntityDocumentPath(kind: ActiveEntityKind, slug: string, inboxDate?: string): string {
-  return path.join(activeEntityPackageDir(kind, slug, inboxDate), ENTITY_INDEX_DOCUMENT).replace(/\\/g, '/');
+export function activeEntityDocumentPath(
+  kind: ActiveEntityKind,
+  slug: string,
+  inboxDate?: string,
+): string {
+  return path
+    .join(activeEntityPackageDir(kind, slug, inboxDate), ENTITY_INDEX_DOCUMENT)
+    .replace(/\\/g, '/');
 }
 
 /** Workspace-relative package directory under an archive root. */

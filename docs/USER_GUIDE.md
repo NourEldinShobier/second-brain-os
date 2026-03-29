@@ -12,7 +12,7 @@ This document explains what the **Second Brain OS** CLI (`second-brain-os`, alia
 
 **Second Brain OS** (`second-brain-os`) is a **local-first** command-line application that helps you run a personal knowledge system (“second brain”) on disk:
 
-- **Markdown files** are the durable source of truth for notes, tasks, projects, areas, goals, resources, inbox captures, and review artifacts.
+- **Markdown files** are the durable source of truth for notes, tasks, projects, areas, goals, resources, and inbox captures.
 - A **SQLite database** (indexed metadata) keeps queries, search, and dashboards fast and consistent with what is on disk.
 
 Think of it as: **files you own** + **a local index** + **one consistent command surface** (`second-brain-os` / `second-brain`).
@@ -21,13 +21,13 @@ Think of it as: **files you own** + **a local index** + **one consistent command
 
 ## 2. High-level architecture
 
-| Layer | Role |
-|--------|------|
-| **CLI** (`second-brain-os`) | Parses flags, resolves the workspace, prints human or JSON output. |
-| **Application services** | Capture, organize, entity CRUD, doctor, reviews, etc. |
-| **Markdown repository** | Reads/writes `.md` with front matter; stable IDs and paths. |
-| **SQLite + Drizzle** | Schema, migrations, index rows linked to files. |
-| **Workspace config** | `.second-brain/config.yml` — database path, output style, optional AI provider. |
+| Layer                       | Role                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| **CLI** (`second-brain-os`) | Parses flags, resolves the workspace, prints human or JSON output.              |
+| **Application services**    | Capture, organize, entity CRUD, doctor, etc.                                    |
+| **Markdown repository**     | Reads/writes `.md` with front matter; stable IDs and paths.                     |
+| **SQLite + Drizzle**        | Schema, migrations, index rows linked to files.                                 |
+| **Workspace config**        | `.second-brain/config.yml` — database path, output style, optional AI provider. |
 
 **Workspace discovery**
 
@@ -92,11 +92,11 @@ node dist/cli/index.js --help
 
 **`npx second-brain-os` only works when npm can see this package.** That means either:
 
-- Your shell’s current directory is the **cloned repo** (with `node_modules` installed and `npm run build` done), or  
-- You use `npx --prefix /path/to/second-brain-os second-brain-os ...`, or  
+- Your shell’s current directory is the **cloned repo** (with `node_modules` installed and `npm run build` done), or
+- You use `npx --prefix /path/to/second-brain-os second-brain-os ...`, or
 - You run `node /path/to/second-brain-os/dist/cli/index.js ...` directly.
 
-It does **not** work if you `cd` into a **vault directory** that only contains Markdown and `.second-brain/`—that folder is not an npm package, so `npx` fails with *could not determine executable to run*. For that case, use a **global** install (`npm install -g second-brain-os`), **`SECOND_BRAIN_WORKSPACE`**, or **`--workspace`**, or run `node` with an absolute path to `dist/cli/index.js`.
+It does **not** work if you `cd` into a **vault directory** that only contains Markdown and `.second-brain/`—that folder is not an npm package, so `npx` fails with _could not determine executable to run_. For that case, use a **global** install (`npm install -g second-brain-os`), **`SECOND_BRAIN_WORKSPACE`**, or **`--workspace`**, or run `node` with an absolute path to `dist/cli/index.js`.
 
 To link the clone globally: **`npm link`** once in the repo after `npm run build`.
 
@@ -139,10 +139,9 @@ Then point later commands at the same workspace with **`--workspace`** or **`SEC
 
 The CLI expects a **PARA-style** folder structure (numbered prefixes may vary by version; your initialized vault is authoritative). Common areas include:
 
-- Inbox for quick capture  
-- Areas, goals, projects, tasks, resources, notes  
-- Reviews (daily / weekly)  
-- **`.second-brain/`** — `config.yml`, SQLite path, indexes/state as implemented  
+- Inbox for quick capture
+- Areas, goals, projects, tasks, resources, notes
+- **`.second-brain/`** — `config.yml`, SQLite path, indexes/state as implemented
 
 Exact folders are created by **`init`** and documented in your workspace after setup.
 
@@ -152,20 +151,20 @@ Exact folders are created by **`init`** and documented in your workspace after s
 
 These apply **before** the subcommand (e.g. `second-brain-os --format json doctor`).
 
-| Option | Meaning |
-|--------|---------|
-| `--format <mode>` | `pretty` (default), `markdown`, or `json`. |
-| `--json` | Shorthand for `--format json`. |
-| `-n`, `--non-interactive` | Disable interactive prompts. |
-| `-q`, `--quiet` | Minimal output (still errors; JSON mode behaves as designed). |
-| `--dry-run` | Preview actions where supported (no persistent changes). |
-| `--workspace <path>` | Vault root (overrides walk + `SECOND_BRAIN_WORKSPACE`). |
-| `-v`, `--version` | Print CLI version. |
+| Option                    | Meaning                                                       |
+| ------------------------- | ------------------------------------------------------------- |
+| `--format <mode>`         | `pretty` (default), `markdown`, or `json`.                    |
+| `--json`                  | Shorthand for `--format json`.                                |
+| `-n`, `--non-interactive` | Disable interactive prompts.                                  |
+| `-q`, `--quiet`           | Minimal output (still errors; JSON mode behaves as designed). |
+| `--dry-run`               | Preview actions where supported (no persistent changes).      |
+| `--workspace <path>`      | Vault root (overrides walk + `SECOND_BRAIN_WORKSPACE`).       |
+| `-v`, `--version`         | Print CLI version.                                            |
 
 **Environment**
 
-| Variable | Role |
-|----------|------|
+| Variable                 | Role                                              |
+| ------------------------ | ------------------------------------------------- |
 | `SECOND_BRAIN_WORKSPACE` | Default vault root when `--workspace` is omitted. |
 
 ---
@@ -174,14 +173,14 @@ These apply **before** the subcommand (e.g. `second-brain-os --format json docto
 
 When **`--format json`** or **`--json`** is used, successful and failed operations are printed as a single JSON object with **stable top-level keys**:
 
-| Field | Purpose |
-|-------|---------|
-| `ok` | `true` on success, `false` on failure. |
-| `schema_version` | Envelope version (e.g. `1.0.0`). |
-| `data` | Command-specific payload, or `null` on failure. |
-| `warnings` | Non-fatal issues. |
-| `errors` | On failure: `{ code, message, details? }[]`. |
-| `next_actions` | Suggested follow-up commands or fixes. |
+| Field            | Purpose                                         |
+| ---------------- | ----------------------------------------------- |
+| `ok`             | `true` on success, `false` on failure.          |
+| `schema_version` | Envelope version (e.g. `1.0.0`).                |
+| `data`           | Command-specific payload, or `null` on failure. |
+| `warnings`       | Non-fatal issues.                               |
+| `errors`         | On failure: `{ code, message, details? }[]`.    |
+| `next_actions`   | Suggested follow-up commands or fixes.          |
 
 **Always** parse `ok` and, on failure, `errors` and `next_actions` before treating output as success.
 
@@ -206,19 +205,19 @@ Below, **`sb`** means your invocation prefix, e.g. `npx second-brain-os` or `sec
 
 ### Workspace & config
 
-| Command | Purpose |
-|---------|---------|
-| `sb init` | Create/configure workspace (see §5). |
-| `sb config show` | Print resolved configuration. |
+| Command                       | Purpose                                                   |
+| ----------------------------- | --------------------------------------------------------- |
+| `sb init`                     | Create/configure workspace (see §5).                      |
+| `sb config show`              | Print resolved configuration.                             |
 | `sb config set <key> <value>` | Update `output_style`, `database_path`, or `ai_provider`. |
 
 Valid **`ai_provider`** values: **`openai`** or **`null`** (local-only / deterministic paths).
 
 ### Capture
 
-| Command | Purpose |
-|---------|---------|
-| `sb capture "raw text"` | Raw **inbox** capture (default when no `--type`). |
+| Command                          | Purpose                                                                            |
+| -------------------------------- | ---------------------------------------------------------------------------------- |
+| `sb capture "raw text"`          | Raw **inbox** capture (default when no `--type`).                                  |
 | `sb capture --type task "Title"` | Typed capture (`area`, `goal`, `project`, `task`, `resource`, `note`, or `inbox`). |
 
 Typed capture supports options such as `--title`, `--body`, `--body-file`, `--slug`, `--area`, `--project`, `--url`, `--due`, `--priority`, etc. (see `second-brain-os capture --help`).
@@ -238,43 +237,38 @@ second-brain-os capture --type task "Quick task" --status todo --body-file ./not
 
 ### Organize
 
-| Command | Purpose |
-|---------|---------|
-| `sb organize analyze` | Heuristic suggestions for inbox items (`--limit` optional). |
-| `sb organize promote --from <ref> --to <kind>` | Promote inbox → typed entity (`--area` / `--project` as needed). |
-| `sb organize rename --path <rel.md> ...` | Rename / retitle with index sync. |
-| `sb organize link --path <rel.md> ...` | Attach areas/projects. |
-| `sb organize reclassify --path <rel.md> --to <kind>` | Change kind among note / resource / task. |
+| Command                                              | Purpose                                                          |
+| ---------------------------------------------------- | ---------------------------------------------------------------- |
+| `sb organize analyze`                                | Heuristic suggestions for inbox items (`--limit` optional).      |
+| `sb organize promote --from <ref> --to <kind>`       | Promote inbox → typed entity (`--area` / `--project` as needed). |
+| `sb organize rename --path <rel.md> ...`             | Rename / retitle with index sync.                                |
+| `sb organize link --path <rel.md> ...`               | Attach areas/projects.                                           |
+| `sb organize reclassify --path <rel.md> --to <kind>` | Change kind among note / resource / task.                        |
 
 ### Day / dashboard / queries
 
-| Command | Purpose |
-|---------|---------|
-| `sb today` | Daily action surface (`--days` optional). |
-| `sb dashboard show` | Home-style aggregated view (`--days` optional). |
-| `sb list [entity]` | List `tasks`, `areas`, `goals`, `projects`, `notes`, `resources`, `inbox` (filters: `--status`, `--due`, `--limit`, …). |
-| `sb show <slug\|id>` | One entity with context. |
-| `sb search [query...]` | Search titles/content/metadata (`--limit`, `--expand`). |
-
-
-| Command | Purpose |
-|---------|---------|
-| `sb review weekly` | Weekly review flow and artifacts. |
+| Command                | Purpose                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `sb today`             | Daily action surface (`--days` optional).                                                                               |
+| `sb dashboard show`    | Home-style aggregated view (`--days` optional).                                                                         |
+| `sb list [entity]`     | List `tasks`, `areas`, `goals`, `projects`, `notes`, `resources`, `inbox` (filters: `--status`, `--due`, `--limit`, …). |
+| `sb show <slug\|id>`   | One entity with context.                                                                                                |
+| `sb search [query...]` | Search titles/content/metadata (`--limit`, `--expand`).                                                                 |
 
 ### Vault drive (imported files and folders)
 
-| Command | Purpose |
-|---------|---------|
-| `sb drive import <path>` | Import a file or folder into `07-drive/items/`. Supports `--title`, `--description`, `--move`, `--tag`, and `--dry-run`. |
-| `sb drive show <ref>` | Show drive item metadata and body. |
-| `sb drive link <drive_ref>` | Link drive item to areas/projects/tasks/notes/goals (`--area`, `--project`, `--task`, `--note`, `--goal`; `--replace`, `--clear`). |
-| `sb drive update <drive_ref>` | Update description, tags, or body (`--description`, `--tag`, `--body`, `--clear-tags`). |
+| Command                       | Purpose                                                                                                                            |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `sb drive import <path>`      | Import a file or folder into `07-drive/items/`. Supports `--title`, `--description`, `--move`, `--tag`, and `--dry-run`.           |
+| `sb drive show <ref>`         | Show drive item metadata and body.                                                                                                 |
+| `sb drive link <drive_ref>`   | Link drive item to areas/projects/tasks/notes/goals (`--area`, `--project`, `--task`, `--note`, `--goal`; `--replace`, `--clear`). |
+| `sb drive update <drive_ref>` | Update description, tags, or body (`--description`, `--tag`, `--body`, `--clear-tags`).                                            |
 
 ### Health
 
-| Command | Purpose |
-|---------|---------|
-| `sb doctor` | Validate config, indexing, and surface findings. |
+| Command              | Purpose                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `sb doctor`          | Validate config, indexing, and surface findings.                                            |
 | `sb doctor --repair` | Reindex from disk and prune orphan index rows (use `--dry-run` to preview where supported). |
 
 ---
@@ -317,12 +311,6 @@ second-brain-os --workspace ~/SecondBrain doctor --repair --format json
 second-brain-os --workspace ~/SecondBrain list tasks --format json
 ```
 
-**Weekly review**
-
-```bash
-second-brain-os --workspace ~/SecondBrain review weekly --format markdown
-```
-
 **Config**
 
 ```bash
@@ -334,7 +322,7 @@ second-brain-os config set output_style json --workspace ~/SecondBrain
 
 ## 11. Agent skills (optional): second-brain-os
 
-Many **AI coding assistants** and IDEs support **instruction packs** (often called *skills*, *rules*, or *commands*) so the model prefers real shell invocations over inventing file contents. Tools differ: **Cursor** often uses **`.cursor/skills/<name>/`**, while **Claude Code**, **GitHub Copilot**, and others use their own directories—follow your product’s documentation for where to install a pack.
+Many **AI coding assistants** and IDEs support **instruction packs** (often called _skills_, _rules_, or _commands_) so the model prefers real shell invocations over inventing file contents. Tools differ: **Cursor** often uses **`.cursor/skills/<name>/`**, while **Claude Code**, **GitHub Copilot**, and others use their own directories—follow your product’s documentation for where to install a pack.
 
 This project’s skill is named **`second-brain-os`** (a folder containing `SKILL.md`, `references/`, and optionally `evals/`). It is **not** required to use the CLI; it only helps agents stay aligned when you choose to install it.
 
@@ -348,7 +336,7 @@ This project’s skill is named **`second-brain-os`** (a folder containing `SKIL
 
 1. Install or enable the skill pack according to your tool (e.g. place the `second-brain-os` folder under your tool’s skills directory when supported).
 2. When you work on Second Brain / vault / PARA / `doctor` / capture flows, the skill description helps the model **choose** CLI-first behavior.
-3. You can explicitly ask: *“Follow the second-brain-os skill and use the CLI with JSON output.”*
+3. You can explicitly ask: _“Follow the second-brain-os skill and use the CLI with JSON output.”_
 
 ### What you should expect from the assistant
 
@@ -364,14 +352,14 @@ If your skill bundle includes **`evals/evals.json`**, you can run **skill-creato
 
 ## 12. Troubleshooting
 
-| Symptom | What to do |
-|---------|------------|
-| “No workspace found” | Run **`init`**, or set **`SECOND_BRAIN_WORKSPACE`**, or pass **`--workspace`**. |
-| `npx second-brain-os` fails inside a vault folder | The vault is not an npm package. Use the globally installed CLI, or `npx` from the cloned repo with **`--workspace`**, or `node /path/to/second-brain-os/dist/cli/index.js`. |
-| **`npm install -g`** / **`better-sqlite3` build errors** | Install a C++ build toolchain for your OS (see [better-sqlite3 troubleshooting](https://github.com/WiseLibs/better-sqlite3/blob/master/docs/troubleshooting.md)). |
-| Validation / wrong slug | Use **`list`** / **`show`** with **`--format json`** to get real IDs and slugs. |
-| Index drift or odd doctor findings | **`doctor --format json`**, then **`doctor --repair --dry-run`**, then **`doctor --repair`** if appropriate. |
-| Config mistakes | **`config set`** with **`--dry-run`** first when available. |
+| Symptom                                                  | What to do                                                                                                                                                                   |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| “No workspace found”                                     | Run **`init`**, or set **`SECOND_BRAIN_WORKSPACE`**, or pass **`--workspace`**.                                                                                              |
+| `npx second-brain-os` fails inside a vault folder        | The vault is not an npm package. Use the globally installed CLI, or `npx` from the cloned repo with **`--workspace`**, or `node /path/to/second-brain-os/dist/cli/index.js`. |
+| **`npm install -g`** / **`better-sqlite3` build errors** | Install a C++ build toolchain for your OS (see [better-sqlite3 troubleshooting](https://github.com/WiseLibs/better-sqlite3/blob/master/docs/troubleshooting.md)).            |
+| Validation / wrong slug                                  | Use **`list`** / **`show`** with **`--format json`** to get real IDs and slugs.                                                                                              |
+| Index drift or odd doctor findings                       | **`doctor --format json`**, then **`doctor --repair --dry-run`**, then **`doctor --repair`** if appropriate.                                                                 |
+| Config mistakes                                          | **`config set`** with **`--dry-run`** first when available.                                                                                                                  |
 
 Detailed recovery order is also documented in the skill bundle’s **`references/recovery.md`** (same ideas as above, CLI-only), when you have that pack installed.
 
@@ -387,14 +375,14 @@ npm test
 
 ## 14. Further reading
 
-- **npm package**: [second-brain-os](https://www.npmjs.com/package/second-brain-os) — install and version history.  
-- **Developer guide**: [DEV_GUIDE.md](DEV_GUIDE.md) — toolchain, layout, testing, migrations, publishing.  
-- **Second Brain OS Dev (maintainer skill):** optional skill pack **`second-brain-os-dev`** — repo workflow (`dev:run`, scripts, pre-publish); install per your IDE/agent, same pattern as §11.  
-- **Task roadmap / epics**: `Tasks markdowns/` in this repo.  
-- **Stable CLI table**: `references/cli-contract.md` inside the **`second-brain-os`** skill bundle (when present).  
-- **Envelope implementation**: `src/shared/envelope.ts`.  
+- **npm package**: [second-brain-os](https://www.npmjs.com/package/second-brain-os) — install and version history.
+- **Developer guide**: [DEV_GUIDE.md](DEV_GUIDE.md) — toolchain, layout, testing, migrations, publishing.
+- **Second Brain OS Dev (maintainer skill):** optional skill pack **`second-brain-os-dev`** — repo workflow (`dev:run`, scripts, pre-publish); install per your IDE/agent, same pattern as §11.
+- **Task roadmap / epics**: `Tasks markdowns/` in this repo.
+- **Stable CLI table**: `references/cli-contract.md` inside the **`second-brain-os`** skill bundle (when present).
+- **Envelope implementation**: `src/shared/envelope.ts`.
 - **Command registration**: `src/cli/program.ts`.
 
 ---
 
-*This guide matches the CLI as implemented in the repository and published to npm. If a flag or subcommand differs, `second-brain-os <command> --help` is authoritative.*
+_This guide matches the CLI as implemented in the repository and published to npm. If a flag or subcommand differs, `second-brain-os <command> --help` is authoritative._

@@ -32,13 +32,12 @@ Complete reference for every `second-brain-os` command, flag, and option.
 8. [Surface Commands](#surface-commands)
    - [today](#today)
    - [dashboard show](#dashboard-show)
-9. [Review & Archive](#review--archive)
-   - [review weekly](#review-weekly)
-   - [archive](#archive)
+9. [Archive](#archive)
 10. [Asset Commands](#asset-commands)
     - [asset add](#asset-add)
     - [asset list](#asset-list)
     - [asset remove](#asset-remove)
+
 11. [Drive Commands](#drive-commands)
     - [drive import](#drive-import)
     - [drive list](#drive-list)
@@ -128,9 +127,6 @@ second-brain-os
 ├── dashboard
 │   └── show                        Home-style aggregated view
 │
-├── review
-│   └── weekly                      Run weekly review
-│
 ├── archive <kind> <slug>           Archive or restore an entity
 │
 ├── asset
@@ -169,12 +165,13 @@ sb init --non-interactive --workspace ~/MyVault
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--non-interactive` | Skip prompts; requires `--workspace` |
-| `--workspace <path>` | Where to create the vault |
+| Flag                 | Description                          |
+| -------------------- | ------------------------------------ |
+| `--non-interactive`  | Skip prompts; requires `--workspace` |
+| `--workspace <path>` | Where to create the vault            |
 
 **What it does:**
+
 - Creates the numbered folder structure (`00-inbox/` through `99-archive/`)
 - Writes `.second-brain/config.yml`
 - Initializes and migrates the SQLite database
@@ -208,11 +205,11 @@ sb config set ai_provider null        # disable AI
 
 **Valid keys:**
 
-| Key | Valid values |
-|-----|-------------|
-| `output_style` | `pretty` \| `markdown` \| `json` |
+| Key             | Valid values                                  |
+| --------------- | --------------------------------------------- |
+| `output_style`  | `pretty` \| `markdown` \| `json`              |
 | `database_path` | Any file path (relative to vault or absolute) |
-| `ai_provider` | `openai` \| `null` |
+| `ai_provider`   | `openai` \| `null`                            |
 
 ---
 
@@ -238,32 +235,33 @@ sb capture --type project --title "Website Redesign" --area work
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument    | Description                                  |
+| ----------- | -------------------------------------------- |
 | `[text...]` | Raw inbox text, or title when using `--type` |
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--type <kind>` | `inbox` \| `area` \| `goal` \| `project` \| `task` \| `resource` \| `note` |
-| `--title <text>` | Title for typed capture |
-| `--body <text>` | Body markdown content |
-| `--body-file <path>` | Body from file, or `-` for stdin |
-| `--slug <slug>` | Override auto-generated slug |
-| `--url <url>` | Resource source URL |
-| `--due <date>` | Task `do_date` (ISO: `YYYY-MM-DD`) |
-| `--priority <n>` | Integer priority (tasks) |
-| `--notebook <name>` | Notebook label (notes) |
-| `--energy <level>` | Energy label: `low` \| `medium` \| `high` (tasks) |
-| `--status <s>` | Workflow status override |
-| `--pinned` | Pin a note |
-| `--area <ref>` | Area id or slug (repeatable; required for goal/project) |
-| `--project <ref>` | Project id or slug (repeatable; optional for tasks) |
+| Flag                 | Description                                                                |
+| -------------------- | -------------------------------------------------------------------------- |
+| `--type <kind>`      | `inbox` \| `area` \| `goal` \| `project` \| `task` \| `resource` \| `note` |
+| `--title <text>`     | Title for typed capture                                                    |
+| `--body <text>`      | Body markdown content                                                      |
+| `--body-file <path>` | Body from file, or `-` for stdin                                           |
+| `--slug <slug>`      | Override auto-generated slug                                               |
+| `--url <url>`        | Resource source URL                                                        |
+| `--due <date>`       | Task `do_date` (ISO: `YYYY-MM-DD`)                                         |
+| `--priority <n>`     | Integer priority (tasks)                                                   |
+| `--notebook <name>`  | Notebook label (notes)                                                     |
+| `--energy <level>`   | Energy label: `low` \| `medium` \| `high` (tasks)                          |
+| `--status <s>`       | Workflow status override                                                   |
+| `--pinned`           | Pin a note                                                                 |
+| `--area <ref>`       | Area id or slug (repeatable; required for goal/project)                    |
+| `--project <ref>`    | Project id or slug (repeatable; optional for tasks)                        |
 
 **Task status and the daily surface:**
 
 Tasks appear in `today` / `dashboard show` only if:
+
 - They have a `do_date` set (appear in Overdue / Due Today / Upcoming), OR
 - They are in a focus status (`next`, `in-progress`, `do-next`)
 
@@ -285,9 +283,9 @@ sb organize analyze --format json
 
 **Flags:**
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--limit <n>` | `20` | Max inbox items to analyze |
+| Flag          | Default | Description                |
+| ------------- | ------- | -------------------------- |
+| `--limit <n>` | `20`    | Max inbox items to analyze |
 
 ---
 
@@ -303,19 +301,20 @@ sb organize promote --from my-inbox-slug --to goal --area health
 
 **Required flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--from <ref>` | Inbox item slug or id |
-| `--to <kind>` | `area` \| `task` \| `note` \| `resource` \| `goal` \| `project` |
+| Flag           | Description                                                     |
+| -------------- | --------------------------------------------------------------- |
+| `--from <ref>` | Inbox item slug or id                                           |
+| `--to <kind>`  | `area` \| `task` \| `note` \| `resource` \| `goal` \| `project` |
 
 **Optional flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--area <ref>` | Area id or slug (repeatable; required for goal/project) |
-| `--project <ref>` | Project id or slug (repeatable) |
+| Flag              | Description                                             |
+| ----------------- | ------------------------------------------------------- |
+| `--area <ref>`    | Area id or slug (repeatable; required for goal/project) |
+| `--project <ref>` | Project id or slug (repeatable)                         |
 
 **What it does:**
+
 - Reads the inbox `index.md`
 - Creates a new entity package in the correct folder
 - Updates the frontmatter `kind` and `status`
@@ -335,16 +334,16 @@ sb organize rename --path 06-notes/old-idea/index.md --title "New Idea" --slug n
 
 **Required flags:**
 
-| Flag | Description |
-|------|-------------|
+| Flag           | Description                               |
+| -------------- | ----------------------------------------- |
 | `--path <rel>` | Workspace-relative path to the `.md` file |
 
 **Optional flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--title <text>` | New display title |
-| `--slug <slug>` | New slug (also renames the package directory) |
+| Flag             | Description                                   |
+| ---------------- | --------------------------------------------- |
+| `--title <text>` | New display title                             |
+| `--slug <slug>`  | New slug (also renames the package directory) |
 
 ---
 
@@ -359,15 +358,15 @@ sb organize link --path 06-notes/my-note/index.md --area health --area personal
 
 **Required flags:**
 
-| Flag | Description |
-|------|-------------|
+| Flag           | Description                       |
+| -------------- | --------------------------------- |
 | `--path <rel>` | Workspace-relative path to entity |
 
 **Optional flags (at least one required):**
 
-| Flag | Description |
-|------|-------------|
-| `--area <ref>` | Area id or slug (repeatable) |
+| Flag              | Description                     |
+| ----------------- | ------------------------------- |
+| `--area <ref>`    | Area id or slug (repeatable)    |
 | `--project <ref>` | Project id or slug (repeatable) |
 
 ---
@@ -383,10 +382,10 @@ sb organize reclassify --path 05-resources/article-draft/index.md --to note
 
 **Required flags:**
 
-| Flag | Description |
-|------|-------------|
+| Flag           | Description                      |
+| -------------- | -------------------------------- |
 | `--path <rel>` | Workspace-relative path to `.md` |
-| `--to <kind>` | `note` \| `resource` \| `task` |
+| `--to <kind>`  | `note` \| `resource` \| `task`   |
 
 **Constraint:** Only `note ↔ resource ↔ task` reclassification is supported (not area/goal/project/inbox).
 
@@ -414,18 +413,18 @@ sb list tasks --format json
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument   | Description                                                                      |
+| ---------- | -------------------------------------------------------------------------------- |
 | `[entity]` | `tasks` \| `areas` \| `goals` \| `projects` \| `notes` \| `resources` \| `inbox` |
 
 **Flags:**
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--status <s>` | — | Filter by workflow status |
-| `--include-archived` | false | Include archived entities |
-| `--limit <n>` | `100` | Max results (max 500) |
-| `--due <date>` | — | Tasks only: filter by `do_date` (YYYY-MM-DD) |
+| Flag                 | Default | Description                                  |
+| -------------------- | ------- | -------------------------------------------- |
+| `--status <s>`       | —       | Filter by workflow status                    |
+| `--include-archived` | false   | Include archived entities                    |
+| `--limit <n>`        | `100`   | Max results (max 500)                        |
+| `--due <date>`       | —       | Tasks only: filter by `do_date` (YYYY-MM-DD) |
 
 ---
 
@@ -442,14 +441,14 @@ sb show my-note --format json
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument   | Description         |
+| ---------- | ------------------- |
 | `<target>` | Entity slug or UUID |
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
+| Flag                 | Description               |
+| -------------------- | ------------------------- |
 | `--include-archived` | Resolve archived entities |
 
 ---
@@ -467,16 +466,16 @@ sb search "meeting notes" --format json
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument     | Description                           |
+| ------------ | ------------------------------------- |
 | `[query...]` | Search terms (joined as single query) |
 
 **Flags:**
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--limit <n>` | `50` | Max results (1–200) |
-| `--expand` | false | Include relationship rows for each hit |
+| Flag          | Default | Description                            |
+| ------------- | ------- | -------------------------------------- |
+| `--limit <n>` | `50`    | Max results (1–200)                    |
+| `--expand`    | false   | Include relationship rows for each hit |
 
 ---
 
@@ -494,11 +493,12 @@ sb today --format json
 
 **Flags:**
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--days <n>` | `7` | Days ahead for Upcoming tasks (1–30) |
+| Flag         | Default | Description                          |
+| ------------ | ------- | ------------------------------------ |
+| `--days <n>` | `7`     | Days ahead for Upcoming tasks (1–30) |
 
 **Sections shown:**
+
 ```
   ⚡ OVERDUE        Tasks with do_date < today
   📅 DUE TODAY      Tasks with do_date = today
@@ -521,27 +521,13 @@ sb dashboard show --format markdown
 
 **Flags:**
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--days <n>` | `7` | Days ahead for upcoming tasks section |
+| Flag         | Default | Description                           |
+| ------------ | ------- | ------------------------------------- |
+| `--days <n>` | `7`     | Days ahead for upcoming tasks section |
 
 ---
 
-## Review & Archive
-
-### `review weekly`
-
-Run the weekly review flow — generates a markdown artifact summarizing the week, logs a `reviews` DB row, and guides through backlog triage.
-
-```bash
-sb review weekly
-sb review weekly --format markdown
-sb review weekly --non-interactive
-```
-
-**Output:** Creates a dated review artifact at `08-reviews/weekly-YYYY-MM-DD.md`.
-
----
+## Archive
 
 ### `archive`
 
@@ -560,16 +546,16 @@ sb archive note old-meeting-notes --restore
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument | Description                                                                |
+| -------- | -------------------------------------------------------------------------- |
 | `<kind>` | `area` \| `goal` \| `project` \| `task` \| `resource` \| `note` \| `inbox` |
-| `<slug>` | Entity slug |
+| `<slug>` | Entity slug                                                                |
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--restore` | Restore from archive to active folder |
+| Flag              | Description                                |
+| ----------------- | ------------------------------------------ |
+| `--restore`       | Restore from archive to active folder      |
 | `--reason <text>` | Optional reason stored in `archive_events` |
 
 ---
@@ -590,17 +576,17 @@ sb asset add my-note ./notes.txt --title "Raw notes" --description "From meeting
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument   | Description         |
+| ---------- | ------------------- |
 | `<entity>` | Entity slug or UUID |
-| `<file>` | Source file path |
+| `<file>`   | Source file path    |
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--title <text>` | Optional display title |
-| `--description <text>` | Optional description |
+| Flag                   | Description            |
+| ---------------------- | ---------------------- |
+| `--title <text>`       | Optional display title |
+| `--description <text>` | Optional description   |
 
 ---
 
@@ -615,8 +601,8 @@ sb asset list my-note --format json
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument   | Description         |
+| ---------- | ------------------- |
 | `<entity>` | Entity slug or UUID |
 
 ---
@@ -632,9 +618,9 @@ sb asset remove my-note ccc00000-0000-0000-0000-000000000003  # by asset UUID
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
-| `<entity>` | Entity slug or UUID |
+| Argument      | Description                                |
+| ------------- | ------------------------------------------ |
+| `<entity>`    | Entity slug or UUID                        |
 | `<asset_ref>` | Asset UUID or path like `assets/photo.png` |
 
 ---
@@ -656,17 +642,17 @@ sb drive import ./data.csv --dry-run                           # preview only
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument | Description                        |
+| -------- | ---------------------------------- |
 | `<path>` | Source file or directory to import |
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--title <text>` | Title (defaults to source basename) |
-| `--description <text>` | Description stored in front matter |
-| `--move` | Remove the source after copying |
+| Flag                   | Description                         |
+| ---------------------- | ----------------------------------- |
+| `--title <text>`       | Title (defaults to source basename) |
+| `--description <text>` | Description stored in front matter  |
+| `--move`               | Remove the source after copying     |
 
 ---
 
@@ -686,15 +672,15 @@ sb drive list --format json
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--include-archived` | Include archived drive items |
-| `--area <ref>` | Filter by area id/slug (repeatable) |
-| `--project <ref>` | Filter by project id/slug (repeatable) |
-| `--task <ref>` | Filter by task id/slug (repeatable) |
-| `--note <ref>` | Filter by note id/slug (repeatable) |
-| `--goal <ref>` | Filter by goal id/slug (repeatable) |
-| `--tag <tag>` | Filter by tag (repeatable) |
+| Flag                  | Description                            |
+| --------------------- | -------------------------------------- |
+| `--include-archived`  | Include archived drive items           |
+| `--area <ref>`        | Filter by area id/slug (repeatable)    |
+| `--project <ref>`     | Filter by project id/slug (repeatable) |
+| `--task <ref>`        | Filter by task id/slug (repeatable)    |
+| `--note <ref>`        | Filter by note id/slug (repeatable)    |
+| `--goal <ref>`        | Filter by goal id/slug (repeatable)    |
+| `--tag <tag>`         | Filter by tag (repeatable)             |
 | `--standalone <bool>` | `true` = no links; `false` = has links |
 
 ---
@@ -724,22 +710,22 @@ sb drive link my-doc --clear area,project        # clear specific kinds first
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument      | Description             |
+| ------------- | ----------------------- |
 | `<drive_ref>` | Drive item slug or UUID |
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--area <ref>` | Area id/slug (repeatable) |
-| `--project <ref>` | Project id/slug (repeatable) |
-| `--task <ref>` | Task id/slug (repeatable) |
-| `--note <ref>` | Note id/slug (repeatable) |
-| `--goal <ref>` | Goal id/slug (repeatable) |
-| `--replace` | Replace (not merge) each provided kind |
-| `--clear <kinds>` | Comma-separated kinds to clear first: `area,project,task,note,goal` |
-| `--include-archived` | Allow archived drive items |
+| Flag                 | Description                                                         |
+| -------------------- | ------------------------------------------------------------------- |
+| `--area <ref>`       | Area id/slug (repeatable)                                           |
+| `--project <ref>`    | Project id/slug (repeatable)                                        |
+| `--task <ref>`       | Task id/slug (repeatable)                                           |
+| `--note <ref>`       | Note id/slug (repeatable)                                           |
+| `--goal <ref>`       | Goal id/slug (repeatable)                                           |
+| `--replace`          | Replace (not merge) each provided kind                              |
+| `--clear <kinds>`    | Comma-separated kinds to clear first: `area,project,task,note,goal` |
+| `--include-archived` | Allow archived drive items                                          |
 
 ---
 
@@ -756,19 +742,19 @@ sb drive update my-doc --body "New notes about this document"
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument      | Description             |
+| ------------- | ----------------------- |
 | `<drive_ref>` | Drive item slug or UUID |
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
-| `--description <text>` | New front matter description |
-| `--tag <tag>` | Add tag (repeatable) |
-| `--clear-tags` | Remove all tags before adding new ones |
-| `--body <text>` | New markdown body |
-| `--include-archived` | Allow archived drive items |
+| Flag                   | Description                            |
+| ---------------------- | -------------------------------------- |
+| `--description <text>` | New front matter description           |
+| `--tag <tag>`          | Add tag (repeatable)                   |
+| `--clear-tags`         | Remove all tags before adding new ones |
+| `--body <text>`        | New markdown body                      |
+| `--include-archived`   | Allow archived drive items             |
 
 ---
 
@@ -783,8 +769,8 @@ sb drive archive my-old-doc --reason "Project completed"
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
+| Flag              | Description                       |
+| ----------------- | --------------------------------- |
 | `--reason <text>` | Archive reason stored in metadata |
 
 ---
@@ -821,8 +807,8 @@ sb doctor --repair --format json
 
 **Flags:**
 
-| Flag | Description |
-|------|-------------|
+| Flag       | Description                                   |
+| ---------- | --------------------------------------------- |
 | `--repair` | Reindex from disk and prune orphan index rows |
 
 **Recommended repair workflow:**
@@ -835,6 +821,7 @@ sb doctor --repair --format json
 ```
 
 **What doctor checks:**
+
 - Config file is valid and parseable
 - Database exists and is reachable
 - Every indexed entity has a file on disk
@@ -862,7 +849,7 @@ Every command with `--format json` returns:
 {
   "ok": true,
   "schema_version": "1.0.0",
-  "data": { },
+  "data": {},
   "warnings": [],
   "errors": [],
   "next_actions": []
@@ -877,16 +864,13 @@ On failure (`ok: false`), `data` is `null` and `errors` contains objects:
   "schema_version": "1.0.0",
   "data": null,
   "warnings": [],
-  "errors": [
-    { "code": "ENTITY_NOT_FOUND", "message": "No task with slug 'bad-slug'" }
-  ],
-  "next_actions": [
-    "second-brain-os list tasks --format json"
-  ]
+  "errors": [{ "code": "ENTITY_NOT_FOUND", "message": "No task with slug 'bad-slug'" }],
+  "next_actions": ["second-brain-os list tasks --format json"]
 }
 ```
 
 **Parsing contract (for scripts/agents):**
+
 1. Check `ok` first
 2. If `false` — read `errors[].message` and follow `next_actions`
 3. If `true` — consume `data`, optionally log `warnings`

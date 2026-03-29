@@ -1,7 +1,10 @@
-import { desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { SecondBrainDb } from '../infrastructure/db/open-database.js';
 import * as schema from '../infrastructure/db/schema.js';
-import { listEntitiesInIndex, type ListedEntityRow } from '../infrastructure/query/list-entities.js';
+import {
+  listEntitiesInIndex,
+  type ListedEntityRow,
+} from '../infrastructure/query/list-entities.js';
 import { buildDailySurface, type DailySurface, type DailySurfaceInput } from './daily-surface.js';
 
 export interface GoalProgressRow {
@@ -54,12 +57,13 @@ export interface DashboardData {
   readonly goals: readonly GoalProgressRow[];
   readonly recentNotes: readonly ListedEntityRow[];
   readonly recentResources: readonly ListedEntityRow[];
-
-  readonly lastWeeklyReview: { readonly startedAt: string; readonly completedAt: string | null } | null;
 }
 
 /** Aggregated home view: daily surface plus goals, recents, archive summary, review hint. */
-export function buildDashboardData(db: SecondBrainDb, options: DashboardDataOptions = {}): DashboardData {
+export function buildDashboardData(
+  db: SecondBrainDb,
+  options: DashboardDataOptions = {},
+): DashboardData {
   const daily = buildDailySurface({ db, ...options.daily });
 
   const goalRows = listEntitiesInIndex(db, 'goal', { limit: 50 });
@@ -69,25 +73,10 @@ export function buildDashboardData(db: SecondBrainDb, options: DashboardDataOpti
   const recentNotes = listEntitiesInIndex(db, 'note', { limit: 6 });
   const recentResources = listEntitiesInIndex(db, 'resource', { limit: 6 });
 
-
-  const last = db
-    .select()
-    .from(schema.reviews)
-    .where(eq(schema.reviews.review_kind, 'weekly'))
-    .orderBy(desc(schema.reviews.started_at))
-    .limit(1)
-    .get();
-
-  const lastWeeklyReview = last
-    ? { startedAt: last.started_at, completedAt: last.completed_at ?? null }
-    : null;
-
   return {
     daily,
     goals,
     recentNotes,
     recentResources,
-
-    lastWeeklyReview,
   };
 }

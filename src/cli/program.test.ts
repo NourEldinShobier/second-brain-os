@@ -7,7 +7,6 @@ describe('createProgram', () => {
     const top = program.commands.map((c) => c.name()).sort();
     expect(top).toEqual(
       [
-
         'capture',
         'config',
         'dashboard',
@@ -16,7 +15,6 @@ describe('createProgram', () => {
         'init',
         'list',
         'organize',
-        'review',
         'search',
         'show',
         'today',
@@ -36,21 +34,27 @@ describe('createProgram', () => {
     expect(dash?.commands.map((c) => c.name())).toEqual(['show']);
   });
 
-  it('nests review weekly under review', () => {
-    const program = createProgram();
-    const rev = program.commands.find((c) => c.name() === 'review');
-    expect(rev?.commands.map((c) => c.name())).toEqual(['weekly']);
-  });
-
   it('nests organize analyze, promote, rename, link, reclassify under organize', () => {
     const program = createProgram();
     const org = program.commands.find((c) => c.name() === 'organize');
-    expect(org?.commands.map((c) => c.name()).sort()).toEqual(['analyze', 'link', 'promote', 'reclassify', 'rename']);
+    expect(org?.commands.map((c) => c.name()).sort()).toEqual([
+      'analyze',
+      'link',
+      'promote',
+      'reclassify',
+      'rename',
+    ]);
   });
 
   it('nests drive import, list, show, link, update under drive', () => {
     const program = createProgram();
     const drive = program.commands.find((c) => c.name() === 'drive');
-    expect(drive?.commands.map((c) => c.name()).sort()).toEqual(['import', 'link', 'list', 'show', 'update']);
+    expect(drive?.commands.map((c) => c.name()).sort()).toEqual([
+      'import',
+      'link',
+      'list',
+      'show',
+      'update',
+    ]);
   });
 });

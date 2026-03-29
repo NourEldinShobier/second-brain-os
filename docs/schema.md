@@ -15,21 +15,20 @@ The SQLite database is a **derivative index** of the Markdown vault. It is never
 
 1. [Entity Relationship Diagram](#entity-relationship-diagram)
 2. [Core Entity Tables](#core-entity-tables)
-   - [inbox\_items](#-inbox_items)
+   - [inbox_items](#-inbox_items)
    - [areas](#-areas)
    - [goals](#-goals)
-   - [goal\_key\_results](#-goal_key_results)
+   - [goal_key_results](#-goal_key_results)
    - [projects](#-projects)
    - [tasks](#-tasks)
    - [resources](#-resources)
    - [notes](#-notes)
 3. [Supporting Tables](#supporting-tables)
-   - [entity\_links](#-entity_links)
-   - [entity\_taxonomy\_links](#-entity_taxonomy_links)
-   - [taxonomy\_terms](#-taxonomy_terms)
-   - [drive\_items](#-drive_items)
-   - [reviews](#-reviews)
-   - [workspace\_kv](#-workspace_kv)
+   - [entity_links](#-entity_links)
+   - [entity_taxonomy_links](#-entity_taxonomy_links)
+   - [taxonomy_terms](#-taxonomy_terms)
+   - [drive_items](#-drive_items)
+   - [workspace_kv](#-workspace_kv)
 4. [Status Vocabularies](#status-vocabularies)
 5. [Common Column Patterns](#common-column-patterns)
 6. [Index Inventory](#index-inventory)
@@ -199,16 +198,6 @@ erDiagram
         text reason
         text previous_path
         text new_path
-        text created_at
-    }
-
-    reviews {
-        text id PK
-        text review_kind
-        text started_at
-        text completed_at
-        text artifact_path
-        text summary
         text created_at
     }
 
@@ -491,6 +480,7 @@ All core entity tables share the same foundational shape:
 ```
 
 **Indexes:**
+
 - `entity_links_from_idx (from_entity_type, from_entity_id)`
 - `entity_links_to_idx (to_entity_type, to_entity_id)`
 
@@ -545,6 +535,7 @@ All core entity tables share the same foundational shape:
 ```
 
 **Indexes:**
+
 - `entity_taxonomy_entity_idx (entity_type, entity_id)`
 - `entity_taxonomy_term_idx (taxonomy_term_id)`
 
@@ -589,7 +580,6 @@ All core entity tables share the same foundational shape:
 
 ---
 
-
 **Purpose:** Audit log of every archive and restore operation. Records where a file was and where it moved, enabling the `doctor` command to detect and repair path drift.
 
 ```
@@ -605,31 +595,6 @@ All core entity tables share the same foundational shape:
 │ created_at    │ TEXT    │ ISO-8601 row insert time    │
 └───────────────┴─────────┴────────────────────────────┘
 ```
-
-
----
-
-### 📋 `reviews`
-
-**Purpose:** Log of completed review sessions (weekly, etc.). Stores timing, the markdown artifact path, and an optional summary.
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  reviews                                                │
-├───────────────┬─────────┬─────────────────────────────┤
-│ Column        │ Type    │ Description                  │
-├───────────────┼─────────┼─────────────────────────────┤
-│ id            │ TEXT PK │ Stable UUID                  │
-│ review_kind   │ TEXT    │ "weekly" | "daily" | etc.    │
-│ started_at    │ TEXT    │ ISO-8601 start               │
-│ completed_at  │ TEXT    │ ISO-8601 completion (opt)    │
-│ artifact_path │ TEXT    │ Path to generated .md report │
-│ summary       │ TEXT    │ Short text summary (opt)     │
-│ created_at    │ TEXT    │ ISO-8601 row insert time     │
-└───────────────┴─────────┴─────────────────────────────┘
-```
-
-**Indexes:** `reviews_kind_idx (review_kind)`
 
 ---
 
@@ -703,6 +668,7 @@ updated_at  = "2026-01-15T09:42:00.000Z"
 SQLite has no native boolean type. The schema uses `INTEGER` with Drizzle's `{ mode: 'boolean' }` adapter:
 
 ```
+
 ```
 
 ### file_path
@@ -745,6 +711,5 @@ All `file_path` columns store **workspace-relative** paths to the canonical `ind
 │ entity_links_to_idx                                     │ (to_entity_type, to_entity_id)      │
 │ drive_items_slug_idx                                    │ slug                                │
 │ drive_items_file_path_idx                               │ file_path                           │
-│ reviews_kind_idx                                        │ review_kind                         │
 └─────────────────────────────────────────────────────────┴─────────────────────────────────────┘
 ```

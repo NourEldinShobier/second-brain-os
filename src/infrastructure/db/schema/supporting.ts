@@ -50,19 +50,3 @@ export const entityLinks = sqliteTable(
     index('entity_links_to_idx').on(t.to_entity_type, t.to_entity_id),
   ],
 );
-
-export const reviews = sqliteTable(
-  'reviews',
-  {
-    id: text('id').primaryKey(),
-    review_kind: text('review_kind').notNull(),
-    started_at: text('started_at').notNull(),
-    completed_at: text('completed_at'),
-    artifact_path: text('artifact_path'),
-    summary: text('summary'),
-    created_at: text('created_at').notNull(),
-  },
-  (t) => [index('reviews_kind_idx').on(t.review_kind)],
-);
-
-

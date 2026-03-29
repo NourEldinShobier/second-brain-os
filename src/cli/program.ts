@@ -13,16 +13,13 @@ import {
 } from './commands/organize-cmd.js';
 
 import {
-
   runDriveImport,
   runDriveLink,
   runDriveList,
-
   runDriveShow,
   runDriveUpdate,
 } from './commands/drive-cmd.js';
 import { runDashboardShow } from './commands/dashboard-show-cmd.js';
-import { runReviewWeekly } from './commands/review-weekly-cmd.js';
 import { runSearch } from './commands/search-cmd.js';
 import { runShow } from './commands/show-cmd.js';
 import { runToday } from './commands/today-cmd.js';
@@ -32,9 +29,7 @@ export function createProgram(): Command {
   const program = new Command();
   program
     .name('second-brain-os')
-    .description(
-      'Second Brain OS — local-first capture, organize, and review (Markdown + SQLite).',
-    )
+    .description('Second Brain OS — local-first capture, organize, and review (Markdown + SQLite).')
     .version(VERSION, '-v, --version')
     .option('--format <mode>', 'output format: pretty, markdown, or json', 'pretty')
     .option('--json', 'shorthand for --format json', false)
@@ -172,9 +167,7 @@ export function createProgram(): Command {
       await runToday(command);
     });
 
-  const dashboard = program
-    .command('dashboard')
-    .description('Render the generated home view');
+  const dashboard = program.command('dashboard').description('Render the generated home view');
 
   dashboard
     .command('show')
@@ -215,17 +208,9 @@ export function createProgram(): Command {
       await runSearch(command, parts ?? []);
     });
 
-  const review = program.command('review').description('Run weekly review and declutter flows');
-
-  review
-    .command('weekly')
-    .description('Run the weekly review flow')
-    .action(async (_options: unknown, command: Command) => {
-      await runReviewWeekly(command);
-    });
-
-
-  const driveCmd = program.command('drive').description('Vault drive: import files and folders into 07-drive/');
+  const driveCmd = program
+    .command('drive')
+    .description('Vault drive: import files and folders into 07-drive/');
 
   driveCmd
     .command('import')
@@ -234,9 +219,15 @@ export function createProgram(): Command {
     .option('--title <text>', 'title (default: basename)')
     .option('--description <text>', 'description stored in front matter and body')
     .option('--move', 'remove the source after copy', false)
-    .action(async (src: string, opts: { title?: string; description?: string; move?: boolean }, command: Command) => {
-      await runDriveImport(command, src, opts);
-    });
+    .action(
+      async (
+        src: string,
+        opts: { title?: string; description?: string; move?: boolean },
+        command: Command,
+      ) => {
+        await runDriveImport(command, src, opts);
+      },
+    );
 
   driveCmd
     .command('list')
@@ -400,9 +391,7 @@ export function createProgram(): Command {
       await runDoctor(command);
     });
 
-  const configCmd = program
-    .command('config')
-    .description('Inspect and update local configuration');
+  const configCmd = program.command('config').description('Inspect and update local configuration');
 
   configCmd
     .command('show')

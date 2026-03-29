@@ -15,7 +15,7 @@ This document explains how a Second Brain OS vault is laid out on disk: the fold
 4. [Frontmatter Field Reference](#frontmatter-field-reference)
 5. [Folder → Entity Kind Mapping](#folder--entity-kind-mapping)
 6. [Drive Items Structure](#drive-items-structure)
-8. [Config File](#config-file)
+7. [Config File](#config-file)
 
 ---
 
@@ -64,9 +64,6 @@ MyVault/
 │           ├── item.md         ← Drive item manifest
 │           └── <original-file> ← The imported content
 │
-├── 08-reviews/                 ← Generated review artifacts
-│   └── weekly-2026-01-13.md
-│
     ├── inbox/
     ├── areas/
     ├── goals/
@@ -107,34 +104,33 @@ Every `index.md` file stores its metadata inside a YAML frontmatter block under 
 ```yaml
 ---
 second_brain:
-  id: "550e8400-e29b-41d4-a716-446655440000"   # UUID — stable forever
-  kind: "task"
+  id: '550e8400-e29b-41d4-a716-446655440000' # UUID — stable forever
+  kind: 'task'
   version: 1
-  slug: "write-q1-report"
-  title: "Write Q1 Report"
-  status: "next"
+  slug: 'write-q1-report'
+  title: 'Write Q1 Report'
+  status: 'next'
 
   # Scheduling (tasks only)
-  due_date: "2026-03-31"
-  energy: "high"
+  due_date: '2026-03-31'
+  energy: 'high'
   priority: 1
 
   # Relationships (outgoing edges — UUIDs)
   area_ids:
-    - "aaa00000-0000-0000-0000-000000000001"
+    - 'aaa00000-0000-0000-0000-000000000001'
   project_ids:
-    - "bbb00000-0000-0000-0000-000000000002"
+    - 'bbb00000-0000-0000-0000-000000000002'
 
   # Assets manifest (populated by `asset add`)
   assets:
-    - id: "ccc00000-0000-0000-0000-000000000003"
-      path: "assets/draft.pdf"
-      original_filename: "Q1-draft.pdf"
-      mime_type: "application/pdf"
-      imported_at: "2026-01-10T09:00:00.000Z"
-      title: "Q1 Draft"
+    - id: 'ccc00000-0000-0000-0000-000000000003'
+      path: 'assets/draft.pdf'
+      original_filename: 'Q1-draft.pdf'
+      mime_type: 'application/pdf'
+      imported_at: '2026-01-10T09:00:00.000Z'
+      title: 'Q1 Draft'
 ---
-
 # Write Q1 Report
 
 Body content goes here as regular Markdown...
@@ -146,41 +142,41 @@ Body content goes here as regular Markdown...
 
 ### Core Fields (all entity kinds)
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | UUID string | ✅ | Stable primary key — never changes |
-| `version` | `1` | ✅ | Schema version (currently always `1`) |
-| `slug` | kebab-case string | ✅ | URL-safe identifier, max 120 chars, pattern `^[a-z0-9]+(-[a-z0-9]+)*$` |
-| `title` | string | ✅ | Human-readable title |
-| `status` | string | ✅ | Kind-specific status (see Status Vocabularies) |
+| Field     | Type              | Required | Description                                                            |
+| --------- | ----------------- | -------- | ---------------------------------------------------------------------- |
+| `id`      | UUID string       | ✅       | Stable primary key — never changes                                     |
+| `version` | `1`               | ✅       | Schema version (currently always `1`)                                  |
+| `slug`    | kebab-case string | ✅       | URL-safe identifier, max 120 chars, pattern `^[a-z0-9]+(-[a-z0-9]+)*$` |
+| `title`   | string            | ✅       | Human-readable title                                                   |
+| `status`  | string            | ✅       | Kind-specific status (see Status Vocabularies)                         |
 
 ### Inbox-Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `captured_at` | ISO-8601 string | When the item was captured |
-| `suggested_entity_type` | string | AI/heuristic suggestion for promotion |
-| `processed_at` | ISO-8601 string \| null | When it was promoted |
+| Field                   | Type                    | Description                           |
+| ----------------------- | ----------------------- | ------------------------------------- |
+| `captured_at`           | ISO-8601 string         | When the item was captured            |
+| `suggested_entity_type` | string                  | AI/heuristic suggestion for promotion |
+| `processed_at`          | ISO-8601 string \| null | When it was promoted                  |
 
 ### Goal-Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `target_date` | ISO date string \| null | Goal deadline |
-| `quarter` | string \| null | e.g. `"Q1"`, `"Q3"` |
-| `year` | integer \| null | Calendar year |
-| `key_results` | KeyResult[] | OKR key results (see below) |
+| Field         | Type                    | Description                 |
+| ------------- | ----------------------- | --------------------------- |
+| `target_date` | ISO date string \| null | Goal deadline               |
+| `quarter`     | string \| null          | e.g. `"Q1"`, `"Q3"`         |
+| `year`        | integer \| null         | Calendar year               |
+| `key_results` | KeyResult[]             | OKR key results (see below) |
 
 **Key Result schema:**
 
 ```yaml
 key_results:
-  - id: "uuid"
-    title: "Ship MVP to 100 users"
+  - id: 'uuid'
+    title: 'Ship MVP to 100 users'
     done: false
     order: 0
-  - id: "uuid"
-    title: "Achieve 4.5 avg rating"
+  - id: 'uuid'
+    title: 'Achieve 4.5 avg rating'
     done: false
     order: 1
 ```
@@ -191,56 +187,55 @@ _(none beyond core — priority, dates are indexed from DB only)_
 
 ### Task-Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field      | Type             | Description                  |
+| ---------- | ---------------- | ---------------------------- |
 | `due_date` | ISO date \| null | When the task should be done |
-| `priority` | integer \| null | Numeric priority |
-| `energy` | string \| null | `low` \| `medium` \| `high` |
+| `priority` | integer \| null  | Numeric priority             |
+| `energy`   | string \| null   | `low` \| `medium` \| `high`  |
 
 ### Resource-Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field        | Type           | Description               |
+| ------------ | -------------- | ------------------------- |
 | `source_url` | string \| null | Original URL or reference |
-| `pinned` | boolean | Pin to top of list |
+| `pinned`     | boolean        | Pin to top of list        |
 
 ### Note-Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field      | Type           | Description        |
+| ---------- | -------------- | ------------------ |
 | `notebook` | string \| null | Logical group name |
-| `pinned` | boolean | Pin to top |
-| `favorite` | boolean | Mark as favorite |
+| `pinned`   | boolean        | Pin to top         |
+| `favorite` | boolean        | Mark as favorite   |
 
 ### Relationship Fields (all non-inbox kinds)
 
 These are **outgoing edges** — the IDs of related entities. They are mirrored into the `entity_links` table.
 
-| Field | Type | Which kinds |
-|-------|------|-------------|
-| `area_ids` | UUID[] | goal, project, task, resource, note |
-| `goal_ids` | UUID[] | project, task, resource, note |
-| `project_ids` | UUID[] | task, resource, note |
-| `task_ids` | UUID[] | resource, note |
-| `resource_ids` | UUID[] | task |
-| `note_ids` | UUID[] | task |
-
+| Field          | Type   | Which kinds                         |
+| -------------- | ------ | ----------------------------------- |
+| `area_ids`     | UUID[] | goal, project, task, resource, note |
+| `goal_ids`     | UUID[] | project, task, resource, note       |
+| `project_ids`  | UUID[] | task, resource, note                |
+| `task_ids`     | UUID[] | resource, note                      |
+| `resource_ids` | UUID[] | task                                |
+| `note_ids`     | UUID[] | task                                |
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 
 ### Assets Field
 
 ```yaml
 assets:
-  - id: "uuid"
-    path: "assets/filename.ext"      # relative to package root
-    original_filename: "name.ext"
-    mime_type: "image/png"
-    imported_at: "2026-01-10T09:00:00.000Z"
-    title: "Optional display title"  # optional
-    description: "Optional note"     # optional
-    sha256: "abc123..."             # optional, for dedup
+  - id: 'uuid'
+    path: 'assets/filename.ext' # relative to package root
+    original_filename: 'name.ext'
+    mime_type: 'image/png'
+    imported_at: '2026-01-10T09:00:00.000Z'
+    title: 'Optional display title' # optional
+    description: 'Optional note' # optional
+    sha256: 'abc123...' # optional, for dedup
 ```
 
 ---
@@ -278,40 +273,36 @@ Drive items have a slightly different package structure — they use `item.md` i
 ```yaml
 ---
 drive_item:
-  id: "uuid"
+  id: 'uuid'
   version: 1
-  slug: "my-project-brief"
-  title: "My Project Brief"
-  description: "Q1 planning document"
-  item_type: "file"              # "file" | "folder"
-  original_name: "Project-Brief-2026.pdf"
-  source_path: "/Users/me/Downloads/Project-Brief-2026.pdf"  # optional
-  imported_at: "2026-01-15T10:00:00.000Z"
-  mime_type: "application/pdf"  # optional
-  sha256: "abc123..."           # optional
-  child_count: null             # for folders: number of files
+  slug: 'my-project-brief'
+  title: 'My Project Brief'
+  description: 'Q1 planning document'
+  item_type: 'file' # "file" | "folder"
+  original_name: 'Project-Brief-2026.pdf'
+  source_path: '/Users/me/Downloads/Project-Brief-2026.pdf' # optional
+  imported_at: '2026-01-15T10:00:00.000Z'
+  mime_type: 'application/pdf' # optional
+  sha256: 'abc123...' # optional
+  child_count: null # for folders: number of files
 
   # Linked entities (UUIDs)
   area_ids: []
-  project_ids: ["bbb00000-0000-0000-0000-000000000002"]
+  project_ids: ['bbb00000-0000-0000-0000-000000000002']
   task_ids: []
   note_ids: []
   goal_ids: []
-  tags: ["planning", "q1"]
+  tags: ['planning', 'q1']
 ---
-
 Body / notes about this drive item...
 ```
 
 ---
 
-
-
 ```
   04-tasks/write-report/index.md
 
 ```
-
 
 ---
 
@@ -320,18 +311,18 @@ Body / notes about this drive item...
 Located at `<vault>/.second-brain/config.yml`:
 
 ```yaml
-schema_version: "1.0.0"
-database_path: ".second-brain/brain.db"   # relative to vault root (or absolute)
-output_style: "pretty"                    # "pretty" | "markdown" | "json"
-ai_provider: null                         # null | "openai"
+schema_version: '1.0.0'
+database_path: '.second-brain/brain.db' # relative to vault root (or absolute)
+output_style: 'pretty' # "pretty" | "markdown" | "json"
+ai_provider: null # null | "openai"
 ```
 
-| Field | Description |
-|-------|-------------|
-| `schema_version` | Config schema version |
-| `database_path` | Path to SQLite file — relative to vault root, or absolute |
-| `output_style` | Default output format (`--format` overrides per-command) |
-| `ai_provider` | `null` = deterministic only; `"openai"` = enables AI features |
+| Field            | Description                                                   |
+| ---------------- | ------------------------------------------------------------- |
+| `schema_version` | Config schema version                                         |
+| `database_path`  | Path to SQLite file — relative to vault root, or absolute     |
+| `output_style`   | Default output format (`--format` overrides per-command)      |
+| `ai_provider`    | `null` = deterministic only; `"openai"` = enables AI features |
 
 Edit with `config set <key> <value>` or open the YAML directly.
 

@@ -30,7 +30,7 @@ Second Brain OS is a **local-first** CLI for running a personal knowledge manage
   │                                                          │
   │  Markdown files   ──▶  source of truth, human readable   │
   │  SQLite index     ──▶  fast queries, rebuildable          │
-  │  CLI surface      ──▶  capture, organize, search, review  │
+  │  CLI surface      ──▶  capture, organize, search          │
   │  No cloud needed  ──▶  works offline, Git-syncable         │
   └──────────────────────────────────────────────────────────┘
 ```
@@ -41,13 +41,13 @@ The core contract: **you own your files**. The database is a derivative that can
 
 ## Core Design Principles
 
-| Principle | What it means in practice |
-|-----------|--------------------------|
-| **Files are truth** | `.md` files with YAML frontmatter are always authoritative. The DB can be wiped and rebuilt. |
-| **Local-first** | No required cloud service. Runs fully offline. Optional OpenAI integration. |
-| **Stable IDs** | Every entity has a UUID in both the frontmatter and the DB. IDs never change even when files are renamed or moved. |
-| **Consistent CLI surface** | All commands share global flags (`--format`, `--workspace`, `--dry-run`, etc.) and a stable JSON envelope. |
-| **Agent-friendly** | `--format json` on every command gives AI agents a structured, machine-parseable interface. |
+| Principle                  | What it means in practice                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Files are truth**        | `.md` files with YAML frontmatter are always authoritative. The DB can be wiped and rebuilt.                       |
+| **Local-first**            | No required cloud service. Runs fully offline. Optional OpenAI integration.                                        |
+| **Stable IDs**             | Every entity has a UUID in both the frontmatter and the DB. IDs never change even when files are renamed or moved. |
+| **Consistent CLI surface** | All commands share global flags (`--format`, `--workspace`, `--dry-run`, etc.) and a stable JSON envelope.         |
+| **Agent-friendly**         | `--format json` on every command gives AI agents a structured, machine-parseable interface.                        |
 
 ---
 
@@ -216,14 +216,14 @@ Every command supports `--format json` (or `--json`). The output always has this
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `ok` | boolean | `true` = success, `false` = failure |
-| `schema_version` | string | Envelope version for forward compat |
-| `data` | object\|null | Command-specific result payload |
-| `warnings` | string[] | Non-fatal issues |
-| `errors` | object[] | `{ code, message, details? }` on failure |
-| `next_actions` | string[] | Suggested CLI commands to run next |
+| Field            | Type         | Description                              |
+| ---------------- | ------------ | ---------------------------------------- |
+| `ok`             | boolean      | `true` = success, `false` = failure      |
+| `schema_version` | string       | Envelope version for forward compat      |
+| `data`           | object\|null | Command-specific result payload          |
+| `warnings`       | string[]     | Non-fatal issues                         |
+| `errors`         | object[]     | `{ code, message, details? }` on failure |
+| `next_actions`   | string[]     | Suggested CLI commands to run next       |
 
 **Always check `ok` and `errors` before consuming `data`.**
 

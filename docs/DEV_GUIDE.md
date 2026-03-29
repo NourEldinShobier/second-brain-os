@@ -6,10 +6,10 @@ This document is for **contributors and maintainers**: how to set up the repo, r
 
 ## 1. Stack and prerequisites
 
-| Requirement | Notes |
-|-------------|--------|
-| **Node.js 20+** | Matches `package.json` → `engines`. |
-| **npm** | Used for install, scripts, and publishing. |
+| Requirement          | Notes                                                                                                                                                                                                                                                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Node.js 20+**      | Matches `package.json` → `engines`.                                                                                                                                                                                                                                                                                    |
+| **npm**              | Used for install, scripts, and publishing.                                                                                                                                                                                                                                                                             |
 | **Native toolchain** | **`better-sqlite3`** compiles during `npm install`. On Windows, install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (C++ workload) if install fails. See [better-sqlite3 troubleshooting](https://github.com/WiseLibs/better-sqlite3/blob/master/docs/troubleshooting.md). |
 
 **TypeScript:** `tsconfig.json` enables strict options (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`, etc.). **ESLint** uses `typescript-eslint` with type-aware rules (`eslint.config.mjs`).
@@ -39,31 +39,31 @@ npx second-brain-os --help
 
 ## 3. npm scripts
 
-| Script | Purpose |
-|--------|---------|
-| `npm run build` | One-shot compile to `dist/`. |
-| `npm run dev` | `tsc --watch` using the build config (iterate on CLI; does not run the CLI). |
-| `npm run dev:run` | **Build once, then run the CLI** — implemented by `scripts/dev-run.mjs`. Prefer **`node scripts/dev-run.mjs …`** for manual tests so npm does not interpret flags like `--format` / `--help`; or use **`npm run dev:run -- -- …`** (extra `--` before CLI args). See §4. |
-| Skip rebuild | **`node scripts/dev-run.mjs --no-build …`** (must be the first argument) or **`SECOND_BRAIN_DEV_SKIP_BUILD=1`** runs `dist/cli/index.js` without `npm run build`. Fails with a clear message if `dist/` is missing. |
-| `npm test` | **Vitest** — `src/**/*.test.ts`, Node environment (`vitest.config.mjs`). |
-| `npm run test:watch` | Vitest watch mode. |
-| `npm run typecheck` | `tsc --noEmit` (full `src/**/*.ts` including tests; uses root `tsconfig.json`). |
-| `npm run lint` | ESLint on the project (see ignores in `eslint.config.mjs`). |
-| `npm run format` | Prettier write. |
-| `npm run db:generate` | **Drizzle Kit** — generate SQL under `drizzle/` from `src/infrastructure/db/schema.ts` (`drizzle.config.ts`). |
-| `npm run migrate` | Placeholder script; migrations apply when a workspace DB is bootstrapped (see §6). |
+| Script                | Purpose                                                                                                                                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run build`       | One-shot compile to `dist/`.                                                                                                                                                                                                                                             |
+| `npm run dev`         | `tsc --watch` using the build config (iterate on CLI; does not run the CLI).                                                                                                                                                                                             |
+| `npm run dev:run`     | **Build once, then run the CLI** — implemented by `scripts/dev-run.mjs`. Prefer **`node scripts/dev-run.mjs …`** for manual tests so npm does not interpret flags like `--format` / `--help`; or use **`npm run dev:run -- -- …`** (extra `--` before CLI args). See §4. |
+| Skip rebuild          | **`node scripts/dev-run.mjs --no-build …`** (must be the first argument) or **`SECOND_BRAIN_DEV_SKIP_BUILD=1`** runs `dist/cli/index.js` without `npm run build`. Fails with a clear message if `dist/` is missing.                                                      |
+| `npm test`            | **Vitest** — `src/**/*.test.ts`, Node environment (`vitest.config.mjs`).                                                                                                                                                                                                 |
+| `npm run test:watch`  | Vitest watch mode.                                                                                                                                                                                                                                                       |
+| `npm run typecheck`   | `tsc --noEmit` (full `src/**/*.ts` including tests; uses root `tsconfig.json`).                                                                                                                                                                                          |
+| `npm run lint`        | ESLint on the project (see ignores in `eslint.config.mjs`).                                                                                                                                                                                                              |
+| `npm run format`      | Prettier write.                                                                                                                                                                                                                                                          |
+| `npm run db:generate` | **Drizzle Kit** — generate SQL under `drizzle/` from `src/infrastructure/db/schema.ts` (`drizzle.config.ts`).                                                                                                                                                            |
+| `npm run migrate`     | Placeholder script; migrations apply when a workspace DB is bootstrapped (see §6).                                                                                                                                                                                       |
 
 ---
 
 ## 4. Running the CLI during development
 
-| Method | When to use |
-|--------|-------------|
-| **`npm run dev:run -- …`** | **Preferred for quick manual checks:** one command = build + `node dist/cli/index.js …`. To iterate without rebuilding each time, run **`node scripts/dev-run.mjs --no-build …`** after a successful build, or set **`SECOND_BRAIN_DEV_SKIP_BUILD=1`**. |
-| **`npx second-brain-os …`** | From the **repo root** after `npm install` + `npm run build`. |
-| **`node dist/cli/index.js …`** | Direct entrypoint; good for debugging or absolute paths. |
-| **`npm link`** | Once after build — installs global symlinks to this package so `second-brain-os` works from any directory. |
-| **Global install from npm** | `npm install -g second-brain-os` — use when you are **not** developing the CLI (see USER_GUIDE). |
+| Method                         | When to use                                                                                                                                                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`npm run dev:run -- …`**     | **Preferred for quick manual checks:** one command = build + `node dist/cli/index.js …`. To iterate without rebuilding each time, run **`node scripts/dev-run.mjs --no-build …`** after a successful build, or set **`SECOND_BRAIN_DEV_SKIP_BUILD=1`**. |
+| **`npx second-brain-os …`**    | From the **repo root** after `npm install` + `npm run build`.                                                                                                                                                                                           |
+| **`node dist/cli/index.js …`** | Direct entrypoint; good for debugging or absolute paths.                                                                                                                                                                                                |
+| **`npm link`**                 | Once after build — installs global symlinks to this package so `second-brain-os` works from any directory.                                                                                                                                              |
+| **Global install from npm**    | `npm install -g second-brain-os` — use when you are **not** developing the CLI (see USER_GUIDE).                                                                                                                                                        |
 
 **Vault directories are not npm packages.** If you `cd` into a vault and run `npx second-brain-os`, npm may error. Use **`--workspace`**, **`SECOND_BRAIN_WORKSPACE`**, a **global** install, or `node /path/to/repo/dist/cli/index.js`.
 
@@ -73,16 +73,16 @@ npx second-brain-os --help
 
 ## 5. Repository layout
 
-| Path | Role |
-|------|------|
-| **`src/cli/`** | Commander **`program`**, per-command modules, CLI tests (`*.test.ts`, integration tests). |
-| **`src/application/`** | Use cases: capture, organize, doctor, reviews, etc. |
-| **`src/infrastructure/`** | Markdown repository, SQLite/Drizzle, config, indexing, search, workspace discovery. |
-| **`src/domain/`** | Types, markdown conventions, validation helpers. |
-| **`src/shared/`** | JSON **envelope**, version string, shared printing helpers. |
-| **`src/test-support/`** | Test fixtures and helpers (not emitted in `dist/`). |
-| **`drizzle/`** | Generated SQL migrations and meta; **shipped** in the npm package. |
-| **`dist/`** | Build output — gitignored; produced by `npm run build`. |
+| Path                      | Role                                                                                      |
+| ------------------------- | ----------------------------------------------------------------------------------------- |
+| **`src/cli/`**            | Commander **`program`**, per-command modules, CLI tests (`*.test.ts`, integration tests). |
+| **`src/application/`**    | Use cases: capture, organize, doctor, etc.                                                |
+| **`src/infrastructure/`** | Markdown repository, SQLite/Drizzle, config, indexing, search, workspace discovery.       |
+| **`src/domain/`**         | Types, markdown conventions, validation helpers.                                          |
+| **`src/shared/`**         | JSON **envelope**, version string, shared printing helpers.                               |
+| **`src/test-support/`**   | Test fixtures and helpers (not emitted in `dist/`).                                       |
+| **`drizzle/`**            | Generated SQL migrations and meta; **shipped** in the npm package.                        |
+| **`dist/`**               | Build output — gitignored; produced by `npm run build`.                                   |
 
 **Layering:** Prefer adding behavior in **application** + **infrastructure** with thin **CLI** adapters. Keep **`src/shared/envelope.ts`** as the single place for JSON response shape when touching outputs.
 
@@ -155,12 +155,12 @@ Planning documents and task specs may live under **`Tasks markdowns/`** (epics a
 
 ## 12. Related documentation
 
-| Doc | Audience |
-|-----|----------|
-| [README.md](../README.md) | Overview, install, quick start, publishing summary. |
+| Doc                            | Audience                                                |
+| ------------------------------ | ------------------------------------------------------- |
+| [README.md](../README.md)      | Overview, install, quick start, publishing summary.     |
 | [USER_GUIDE.md](USER_GUIDE.md) | Architecture, commands, JSON envelope, troubleshooting. |
-| This file | Development, testing, DB workflow, releases. |
+| This file                      | Development, testing, DB workflow, releases.            |
 
 ---
 
-*When in doubt, `second-brain-os <command> --help` and the tests are authoritative for behavior.*
+_When in doubt, `second-brain-os <command> --help` and the tests are authoritative for behavior._
