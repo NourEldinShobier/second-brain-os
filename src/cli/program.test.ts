@@ -8,7 +8,6 @@ describe('createProgram', () => {
     expect(top).toEqual(
       [
         'archive',
-        'asset',
         'capture',
         'config',
         'dashboard',

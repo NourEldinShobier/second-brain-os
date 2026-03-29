@@ -29,6 +29,20 @@
       "when": 1774335229683,
       "tag": "0003_thick_leopardon",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1743278400000,
+      "tag": "0004_remove_ai_operations",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1743285600000,
+      "tag": "0005_remove_entity_assets",
+      "breakpoints": true
     }
   ]
 }

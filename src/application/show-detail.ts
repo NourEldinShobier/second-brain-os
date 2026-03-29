@@ -1,4 +1,3 @@
-import type { EntityAssetManifestEntry } from '../domain/markdown/second-brain-meta.js';
 import type { Result } from '../domain/result.js';
 import { err, ok } from '../domain/result.js';
 import type { SecondBrainDb } from '../infrastructure/db/open-database.js';
@@ -11,8 +10,6 @@ export interface ShowDetail {
   readonly body: string;
   readonly forward: readonly EntityLinkRow[];
   readonly backlinks: readonly EntityLinkRow[];
-  /** From front matter manifest (PRD §7.3). */
-  readonly assets: readonly EntityAssetManifestEntry[];
 }
 
 export async function loadShowDetail(
@@ -37,6 +34,5 @@ export async function loadShowDetail(
     body: read.value.body,
     forward: listForwardLinks(db, found.value.kind, found.value.id),
     backlinks: listBacklinks(db, found.value.kind, found.value.id),
-    assets: read.value.meta.assets ?? [],
   });
 }

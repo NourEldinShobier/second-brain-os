@@ -12,7 +12,6 @@ import {
   runOrganizeReclassify,
 } from './commands/organize-cmd.js';
 import { runArchive } from './commands/archive-cmd.js';
-import { runAssetAdd, runAssetList, runAssetRemove } from './commands/asset-cmd.js';
 import {
   runDriveArchive,
   runDriveImport,
@@ -225,42 +224,6 @@ export function createProgram(): Command {
       await runReviewWeekly(command);
     });
 
-  const assetCmd = program.command('asset').description('Attach and manage files on entity packages (assets/)');
-
-  assetCmd
-    .command('add')
-    .description('Copy a file into an entity package under assets/')
-    .argument('<entity>', 'entity slug or stable id')
-    .argument('<file>', 'source file path')
-    .option('--title <text>', 'optional display title')
-    .option('--description <text>', 'optional description')
-    .action(
-      async (
-        entity: string,
-        file: string,
-        opts: { title?: string; description?: string },
-        command: Command,
-      ) => {
-        await runAssetAdd(command, entity, file, opts);
-      },
-    );
-
-  assetCmd
-    .command('list')
-    .description('List assets attached to an entity (from index)')
-    .argument('<entity>', 'entity slug or stable id')
-    .action(async (entity: string, _options: unknown, command: Command) => {
-      await runAssetList(command, entity);
-    });
-
-  assetCmd
-    .command('remove')
-    .description('Remove an asset by id or assets/ path (deletes file and manifest entry)')
-    .argument('<entity>', 'entity slug or stable id')
-    .argument('<asset_ref>', 'asset id or path such as assets/photo.png')
-    .action(async (entity: string, assetRef: string, _options: unknown, command: Command) => {
-      await runAssetRemove(command, entity, assetRef);
-    });
 
   const driveCmd = program.command('drive').description('Vault drive: import files and folders into 07-drive/');
 

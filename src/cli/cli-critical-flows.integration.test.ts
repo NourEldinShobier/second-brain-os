@@ -46,7 +46,7 @@ describe('CLI critical flows (integration)', () => {
       for (const k of ENVELOPE_STABLE_FIELDS) {
         expect(capParsed).toHaveProperty(k);
       }
-      expect(capParsed.ok).toBe(true);
+      expect(capParsed['ok']).toBe(true);
 
       const docLogs: string[] = [];
       const docSpy = vi.spyOn(console, 'log').mockImplementation((msg) => {
@@ -60,7 +60,7 @@ describe('CLI critical flows (integration)', () => {
       for (const k of ENVELOPE_STABLE_FIELDS) {
         expect(docParsed).toHaveProperty(k);
       }
-      expect(docParsed.ok).toBe(true);
+      expect(docParsed['ok']).toBe(true);
     } finally {
       await ws.cleanup();
     }
@@ -78,8 +78,8 @@ describe('CLI critical flows (integration)', () => {
 
       expect(process.exitCode).not.toBe(1);
       const parsed = parseJsonEnvelopeFromLogs(logs) as Record<string, unknown>;
-      expect(parsed.ok).toBe(true);
-      expect(parsed.data).toEqual(expect.any(Object));
+      expect(parsed['ok']).toBe(true);
+      expect(parsed['data']).toEqual(expect.any(Object));
     } finally {
       await ws.cleanup();
     }

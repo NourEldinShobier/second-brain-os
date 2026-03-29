@@ -17,7 +17,7 @@ export interface SearchHit {
   readonly slug: string;
   readonly title: string;
   readonly file_path: string;
-  readonly match: 'title' | 'body' | 'both' | 'asset_metadata' | 'description';
+  readonly match: 'title' | 'body' | 'both' | 'description';
 }
 
 export async function searchWorkspaceMarkdown(
@@ -91,20 +91,11 @@ export async function searchWorkspaceMarkdown(
     const k = kind as ListableEntityKind;
     const titleHit = p.value.meta.title.toLowerCase().includes(ql);
     const bodyHit = p.value.body.toLowerCase().includes(ql);
-    const assetHit =
-      p.value.meta.assets?.some((a) => {
-        const parts = [a.title, a.description, a.original_filename, a.path].filter(
-          (x): x is string => typeof x === 'string' && x.length > 0,
-        );
-        return parts.some((x) => x.toLowerCase().includes(ql));
-      }) ?? false;
-    if (!titleHit && !bodyHit && !assetHit) {
+    if (!titleHit && !bodyHit) {
       continue;
     }
     let match: SearchHit['match'];
-    if (assetHit && !titleHit && !bodyHit) {
-      match = 'asset_metadata';
-    } else if (titleHit && bodyHit) {
+    if (titleHit && bodyHit) {
       match = 'both';
     } else if (titleHit) {
       match = 'title';

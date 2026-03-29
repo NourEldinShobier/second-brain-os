@@ -8,9 +8,7 @@ export {
 export type { ParsedFilename } from './filename.js';
 export { isValidSlug, slugifyTitle, SLUG_PATTERN } from './slug.js';
 export {
-  entityAssetManifestEntrySchema,
   FRONTMATTER_ROOT_KEY,
   secondBrainMetaSchema,
-  type EntityAssetManifestEntry,
   type SecondBrainMeta,
 } from './second-brain-meta.js';

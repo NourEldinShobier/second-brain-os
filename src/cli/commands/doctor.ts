@@ -2,7 +2,6 @@ import type { Command } from 'commander';
 import {
   pruneOrphanDriveItemRows,
   pruneOrphanIndexRows,
-  pruneStaleEntityAssetRows,
   runDoctorDiagnostics,
 } from '../../application/doctor-service.js';
 import { closeSecondBrainDatabase, openAndMigrate } from '../../infrastructure/db/open-database.js';
@@ -53,11 +52,9 @@ export async function runDoctor(command: Command): Promise<void> {
     const diagnostics = await runDoctorDiagnostics(resolved.value.workspaceRoot, db);
 
     let pruned = 0;
-    let prunedAssets = 0;
     let prunedDrive = 0;
     if (opts.repair === true && !ctx.dryRun) {
       pruned = pruneOrphanIndexRows(resolved.value.workspaceRoot, db);
-      prunedAssets = pruneStaleEntityAssetRows(resolved.value.workspaceRoot, db);
       prunedDrive = pruneOrphanDriveItemRows(resolved.value.workspaceRoot, db);
     }
 
@@ -86,7 +83,6 @@ export async function runDoctor(command: Command): Promise<void> {
         opts.repair === true
           ? {
               pruned_orphan_index_rows: pruned,
-              pruned_stale_asset_rows: prunedAssets,
               pruned_orphan_drive_rows: prunedDrive,
               dry_run: ctx.dryRun,
             }
@@ -114,7 +110,7 @@ export async function runDoctor(command: Command): Promise<void> {
       }
       if (opts.repair === true) {
         console.log(
-          `\nRepair: pruned **${String(pruned)}** orphan entity row(s), **${String(prunedAssets)}** stale asset row(s), **${String(prunedDrive)}** orphan drive row(s).`,
+          `\nRepair: pruned **${String(pruned)}** orphan entity row(s), **${String(prunedDrive)}** orphan drive row(s).`,
         );
       }
       console.log('');
@@ -137,7 +133,7 @@ export async function runDoctor(command: Command): Promise<void> {
       if (opts.repair === true) {
         presentation.bodyLine(
           ctx,
-          `Repair: pruned ${String(pruned)} orphan entity row(s), ${String(prunedAssets)} stale asset row(s), ${String(prunedDrive)} orphan drive row(s).`,
+          `Repair: pruned ${String(pruned)} orphan entity row(s), ${String(prunedDrive)} orphan drive row(s).`,
         );
       }
       presentation.suggestions(ctx, env.next_actions);

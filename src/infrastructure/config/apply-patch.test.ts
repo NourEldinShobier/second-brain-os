@@ -5,8 +5,8 @@ const base = {
   schema_version: '1',
   database_path: '.second-brain/second-brain.db',
   output_style: 'pretty' as const,
-  ai_provider: null as const,
-};
+  ai_provider: null,
+} as const;
 
 describe('parseConfigSet', () => {
   it('parses output_style', () => {

@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import type { ListableEntityKind } from '../domain/listable-kind.js';
@@ -203,110 +203,6 @@ function getEntityFilePath(db: SecondBrainDb, kind: string, id: string): string 
   }
 }
 
-/** Index rows for entity assets whose payload file is missing, orphan files under `assets/`, or orphan asset index rows. */
-export function findEntityAssetDrift(workspaceRoot: string, db: SecondBrainDb): DoctorFinding[] {
-  const root = path.resolve(workspaceRoot);
-  const findings: DoctorFinding[] = [];
-  const assetRows = db.select().from(schema.entityAssets).all();
-  for (const row of assetRows) {
-    const ownerPath = getEntityFilePath(db, row.owner_entity_type, row.owner_entity_id);
-    if (ownerPath === undefined) {
-      findings.push({
-        severity: 'warning',
-        category: 'asset_orphan_index',
-        message: `entity_assets row references missing owner ${row.owner_entity_type}:${row.owner_entity_id}`,
-        id: row.id,
-      });
-      continue;
-    }
-    const entityDir = path.dirname(path.join(root, ownerPath));
-    const abs = path.join(entityDir, ...row.path_in_package.split('/').filter(Boolean));
-    try {
-      statSync(abs);
-    } catch {
-      findings.push({
-        severity: 'error',
-        category: 'asset_manifest_missing_payload',
-        message: `Asset file missing on disk: ${row.path_in_package} (owner ${row.owner_entity_id})`,
-        path: row.path_in_package,
-        id: row.id,
-      });
-    }
-  }
-
-  const ownerRows: readonly { readonly id: string; readonly file_path: string }[] = [
-    ...db.select({ id: schema.areas.id, file_path: schema.areas.file_path }).from(schema.areas).all(),
-    ...db.select({ id: schema.goals.id, file_path: schema.goals.file_path }).from(schema.goals).all(),
-    ...db.select({ id: schema.projects.id, file_path: schema.projects.file_path }).from(schema.projects).all(),
-    ...db.select({ id: schema.tasks.id, file_path: schema.tasks.file_path }).from(schema.tasks).all(),
-    ...db.select({ id: schema.resources.id, file_path: schema.resources.file_path }).from(schema.resources).all(),
-    ...db.select({ id: schema.notes.id, file_path: schema.notes.file_path }).from(schema.notes).all(),
-  ];
-
-  for (const o of ownerRows) {
-    const pkgDir = path.dirname(path.join(root, o.file_path));
-    const assetsDir = path.join(pkgDir, 'assets');
-    let names: string[];
-    try {
-      names = readdirSync(assetsDir);
-    } catch {
-      continue;
-    }
-    const indexed = new Set(
-      db
-        .select({ path_in_package: schema.entityAssets.path_in_package })
-        .from(schema.entityAssets)
-        .where(eq(schema.entityAssets.owner_entity_id, o.id))
-        .all()
-        .map((r) => r.path_in_package),
-    );
-    for (const name of names) {
-      const absFile = path.join(assetsDir, name);
-      try {
-        if (!statSync(absFile).isFile()) {
-          continue;
-        }
-      } catch {
-        continue;
-      }
-      const rel = `assets/${name.replace(/\\/g, '/')}`;
-      if (!indexed.has(rel)) {
-        findings.push({
-          severity: 'warning',
-          category: 'asset_orphan_file',
-          message: `File in assets/ not listed in entity manifest: ${rel}`,
-          path: path.relative(root, absFile).replace(/\\/g, '/'),
-        });
-      }
-    }
-  }
-
-  return findings;
-}
-
-/** Remove `entity_assets` rows when the payload file is missing or the owner entity row is gone. */
-export function pruneStaleEntityAssetRows(workspaceRoot: string, db: SecondBrainDb): number {
-  const root = path.resolve(workspaceRoot);
-  let removed = 0;
-  const rows = db.select().from(schema.entityAssets).all();
-  for (const row of rows) {
-    const ownerPath = getEntityFilePath(db, row.owner_entity_type, row.owner_entity_id);
-    if (ownerPath === undefined) {
-      db.delete(schema.entityAssets).where(eq(schema.entityAssets.id, row.id)).run();
-      removed += 1;
-      continue;
-    }
-    const entityDir = path.dirname(path.join(root, ownerPath));
-    const abs = path.join(entityDir, ...row.path_in_package.split('/').filter(Boolean));
-    try {
-      statSync(abs);
-    } catch {
-      db.delete(schema.entityAssets).where(eq(schema.entityAssets.id, row.id)).run();
-      removed += 1;
-    }
-  }
-  return removed;
-}
 
 function driftToFinding(d: DriftItem): DoctorFinding {
   const severity: DoctorSeverity =
@@ -336,7 +232,6 @@ export async function runDoctorDiagnostics(workspaceRoot: string, db: SecondBrai
 
   findings.push(...findOrphanIndexRows(workspaceRoot, db));
   findings.push(...findBrokenEntityLinks(db));
-  findings.push(...findEntityAssetDrift(workspaceRoot, db));
 
   return {
     indexed_files: reindex.indexedFiles,

@@ -1,0 +1,141 @@
+﻿
+> second-brain-os@0.1.1 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mD:/code/projects/second-brain-os[39m
+
+ [32mΓ£ô[39m src/shared/version.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mΓ£ô[39m src/domain/organize/inbox-heuristics.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mΓ£ô[39m src/application/ai-degraded-warnings.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mΓ£ô[39m src/domain/relationships/validation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mΓ£ô[39m src/domain/markdown/filename.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mΓ£ô[39m src/shared/envelope.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/workspace/create-layout.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 43[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/ai/ai-services.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/config/apply-patch.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/markdown/parse-document.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/workspace/seed-starter-content.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 138[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/workspace/resolve-workspace.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/config/load-workspace-config.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 149[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/markdown/markdown-repository.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 187[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/db/bootstrap.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 116[2mms[22m[39m
+ [32mΓ£ô[39m src/application/weekly-review.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 226[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/indexing/reindex-workspace.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 142[2mms[22m[39m
+ [32mΓ£ô[39m src/application/capture-service.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 171[2mms[22m[39m
+ [32mΓ£ô[39m src/application/typed-capture.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 201[2mms[22m[39m
+ [32mΓ£ô[39m src/test-support/workspace-fixture.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 244[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/search/workspace-search.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 161[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/query/list-entities.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 209[2mms[22m[39m
+ [32mΓ£ô[39m src/application/daily-surface.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 158[2mms[22m[39m
+ [32mΓ£ô[39m src/infrastructure/query/find-entity.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 197[2mms[22m[39m
+ [32mΓ£ô[39m src/application/doctor-service.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 220[2mms[22m[39m
+ [32mΓ£ô[39m src/application/drive-link.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 342[2mms[22m[39m
+ [32mΓ£ô[39m src/application/drive-vault-service.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 510[2mms[22m[39m
+ [32mΓ£ô[39m src/application/entity-crud-service.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 568[2mms[22m[39m
+node.exe : [90mstderr[2m | 
+src/cli/cli-hardening.test.ts[2m > 
+[22m[2mCLI hardening (quiet, exit 
+codes, dry-run)[2m > [22m[2msets 
+exit code 1 when capture fails 
+validation in quiet mode
+At C:\nvm4w\nodejs\npm.ps1:16 char:5
++     & "$basedir/node$exe"  "$basedir/
+node_modules/npm/bin/npm-cli.js" ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpeci 
+   fied: ([90mstderr[2m...n in quie  
+  t mode:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCo 
+   mmandError
+ 
+[22m[39msecond-brain-os: Pass text 
+to capture, e.g. `second-brain-os 
+capture "Your note"`, `--body-file 
+<path>`, or use `--type` for typed 
+entities.
+
+[90mstdout[2m | src/cli/cli-hardening.test.ts[2m > [22m[2mCLI hardening (quiet, exit codes, dry-run)[2m > [22m[2msets exit code 1 for JSON validation failures
+[22m[39m{
+  "ok": false,
+  "schema_version": "1.0.0",
+  "data": null,
+  "warnings": [],
+  "errors": [
+    {
+      "code": "VALIDATION",
+      "message": "Pass text to capture, e.g. `second-brain-os capture \"Your note\"`, `--body-file <path>`, or use `--type` for typed entities."
+    }
+  ],
+  "next_actions": [
+    "See `second-brain-os capture --help`."
+  ]
+}
+
+ [32mΓ£ô[39m src/cli/cli-hardening.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [31mΓ¥»[39m src/cli/program.test.ts [2m([22m[2m6 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 18[2mms[22m[39m
+[31m   [31m├ù[31m createProgram[2m > [22mregisters every top-level command group from the PRD[39m[32m 13[2mms[22m[39m
+[31m     ΓåÆ expected [ 'archive', 'capture', ΓÇª(11) ] to deeply equal [ Array(14) ][39m
+   [32mΓ£ô[39m createProgram[2m > [22mnests config show and set under config[32m 1[2mms[22m[39m
+   [32mΓ£ô[39m createProgram[2m > [22mnests dashboard show under dashboard[32m 1[2mms[22m[39m
+   [32mΓ£ô[39m createProgram[2m > [22mnests review weekly under review[32m 1[2mms[22m[39m
+   [32mΓ£ô[39m createProgram[2m > [22mnests organize analyze, promote, rename, link, reclassify under organize[32m 1[2mms[22m[39m
+   [32mΓ£ô[39m createProgram[2m > [22mnests drive import, list, show, archive, restore under drive[32m 1[2mms[22m[39m
+ [32mΓ£ô[39m src/cli/cli-critical-flows.integration.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 148[2mms[22m[39m
+
+[31mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[39m[1m[41
+m Failed Tests 1 [49m[22m[31mΓÄ»ΓÄ»Γ
+Ä»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[39m
+
+[41m[1m FAIL [22m[49m 
+src/cli/program.test.ts[2m > 
+[22mcreateProgram[2m > 
+[22mregisters every top-level command 
+group from the PRD
+[31m[1mAssertionError[22m: expected 
+[ 'archive', 'capture', ΓÇª(11) ] to 
+deeply equal [ Array(14) ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[33m@@ -1,8 +1,7 @@[39m
+[2m  [[22m
+[2m    "archive",[22m
+[32m-   "asset",[39m
+[2m    "capture",[22m
+[2m    "config",[22m
+[2m    "dashboard",[22m
+[2m    "doctor",[22m
+[2m    "drive",[22m
+
+[36m [2mΓ¥»[22m src/cli/program.test
+.ts:[2m8:17[22m[39m
+    [90m  6| [39m    [35mconst[39m 
+program [33m=[39m 
+[34mcreateProgram[39m()[33m;[39m
+    [90m  7| [39m    [35mconst[39m 
+top [33m=[39m program[33m.[39mcomma
+nds[33m.[39m[34mmap[39m((c) 
+[33m=>[39m c[33m.[39m[34mname[39m
+())[33m.[39m[34msort[39m()[33m;[3
+9m
+    [90m  8| [39m    [34mexpect[39m
+(top)[33m.[39m[34mtoEqual[39m(
+    [90m   | [39m                
+[31m^[39m
+    [90m  9| [39m      [
+    [90m 10| [39m        
+[32m'archive'[39m[33m,[39m
+
+[31m[2mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+ΓÄ»[1/1]ΓÄ»[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m30 passed[39m[22m[90m (31)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m80 passed[39m[22m[90m (81)[39m
+[2m   Start at [22m 21:24:39
+[2m   Duration [22m 3.55s[2m (transform 5.98s, setup 0ms, collect 40.07s, tests 4.36s, environment 13ms, prepare 11.21s)[22m
+

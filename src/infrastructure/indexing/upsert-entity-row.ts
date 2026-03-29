@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm';
 import type { SecondBrainMeta } from '../../domain/markdown/second-brain-meta.js';
 import type { SecondBrainDb } from '../db/open-database.js';
 import * as schema from '../db/schema.js';
-import { replaceEntityAssetsForOwner } from './sync-entity-assets.js';
 
 export function upsertArea(
   db: SecondBrainDb,
@@ -349,8 +348,5 @@ export function upsertByKind(
       break;
     case 'archive_record':
       break;
-  }
-  if (meta.kind !== 'archive_record') {
-    replaceEntityAssetsForOwner(db, meta, relPath, createdAt, updatedAt);
   }
 }
