@@ -9,8 +9,6 @@ import { err, ok } from '../domain/result.js';
 import type { SecondBrainDb } from '../infrastructure/db/open-database.js';
 import * as schema from '../infrastructure/db/schema.js';
 import {
-  archivedDriveItemDocumentPath,
-  archivedDriveItemPackageDir,
   driveItemDocumentPath,
   driveItemPackageDir,
   DRIVE_PAYLOAD_DIR,
@@ -185,7 +183,6 @@ export async function importDrivePayload(
 }
 
 export interface DriveListFilters {
-  readonly includeArchived: boolean;
   readonly areaIds?: string[] | undefined;
   readonly projectIds?: string[] | undefined;
   readonly taskIds?: string[] | undefined;
@@ -227,12 +224,7 @@ function hasNoLinks(row: typeof schema.driveItems.$inferSelect): boolean {
 }
 
 export function listDriveItems(db: SecondBrainDb, filters: DriveListFilters): typeof schema.driveItems.$inferSelect[] {
-  let rows: typeof schema.driveItems.$inferSelect[];
-  if (filters.includeArchived) {
-    rows = db.select().from(schema.driveItems).all();
-  } else {
-    rows = db.select().from(schema.driveItems).where(eq(schema.driveItems.archived, false)).all();
-  }
+  let rows: typeof schema.driveItems.$inferSelect[] = db.select().from(schema.driveItems).all();
 
   if (
     filters.areaIds === undefined &&
@@ -278,7 +270,6 @@ export function listDriveItems(db: SecondBrainDb, filters: DriveListFilters): ty
 export function findDriveItemByRef(
   db: SecondBrainDb,
   ref: string,
-  includeArchived: boolean,
 ): Result<typeof schema.driveItems.$inferSelect, string> {
   const r = ref.trim();
   if (r.length === 0) {
@@ -286,16 +277,10 @@ export function findDriveItemByRef(
   }
   const byId = db.select().from(schema.driveItems).where(eq(schema.driveItems.id, r)).get();
   if (byId !== undefined) {
-    if (!includeArchived && byId.archived) {
-      return err('Drive item is archived. Pass --include-archived.');
-    }
     return ok(byId);
   }
   const bySlug = db.select().from(schema.driveItems).where(eq(schema.driveItems.slug, r)).get();
   if (bySlug !== undefined) {
-    if (!includeArchived && bySlug.archived) {
-      return err('Drive item is archived. Pass --include-archived.');
-    }
     return ok(bySlug);
   }
   return err(`Drive item not found: ${r}`);
@@ -409,9 +394,8 @@ export async function applyDriveItemLinks(
     readonly clearKinds: readonly DriveLinkableKind[];
     readonly dryRun: boolean;
   },
-  includeArchived: boolean,
 ): Promise<Result<DriveItemMeta, string>> {
-  const row = findDriveItemByRef(db, driveRef, includeArchived);
+  const row = findDriveItemByRef(db, driveRef);
   if (!row.ok) {
     return err(row.error);
   }
@@ -526,10 +510,9 @@ export async function updateDriveItemMetadata(
     readonly tags?: readonly string[];
     readonly body?: string;
   },
-  includeArchived: boolean,
   options: { readonly dryRun: boolean },
 ): Promise<Result<DriveItemMeta, string>> {
-  const row = findDriveItemByRef(db, driveRef, includeArchived);
+  const row = findDriveItemByRef(db, driveRef);
   if (!row.ok) {
     return err(row.error);
   }
@@ -560,77 +543,3 @@ export async function updateDriveItemMetadata(
   return ok(meta);
 }
 
-export async function archiveDriveItem(
-  workspaceRoot: string,
-  db: SecondBrainDb,
-  slug: string,
-  reason?: string,
-): Promise<Result<{ readonly newPath: string }, string>> {
-  const root = path.resolve(workspaceRoot);
-  const row = db.select().from(schema.driveItems).where(eq(schema.driveItems.slug, slug)).get();
-  if (row === undefined) {
-    return err(`No drive item with slug: ${slug}`);
-  }
-  if (row.archived) {
-    return err('Drive item is already archived');
-  }
-  const fromPkg = path.join(root, driveItemPackageDir(slug));
-  const toPkg = path.join(root, archivedDriveItemPackageDir(slug));
-  try {
-    await rename(fromPkg, toPkg);
-  } catch (e) {
-    return err(e instanceof Error ? e.message : String(e));
-  }
-  const relPath = archivedDriveItemDocumentPath(slug);
-  const absDoc = path.join(root, relPath);
-  const raw = await readFile(absDoc, 'utf8');
-  const parsed = parseDriveItemDocument(raw);
-  if (!parsed.ok) {
-    return err(parsed.error);
-  }
-  const next: DriveItemMeta = {
-    ...parsed.value.meta,
-    archived: true,
-    archived_at: nowIso(),
-    archive_reason: reason ?? null,
-  };
-  await writeFile(absDoc, serializeDriveItem(next, parsed.value.body), 'utf8');
-  const st = await stat(absDoc);
-  upsertDriveItem(db, next, relPath, st.birthtime.toISOString(), st.mtime.toISOString());
-  return ok({ newPath: relPath });
-}
-
-export async function restoreDriveItem(workspaceRoot: string, db: SecondBrainDb, slug: string): Promise<Result<true, string>> {
-  const root = path.resolve(workspaceRoot);
-  const row = db.select().from(schema.driveItems).where(eq(schema.driveItems.slug, slug)).get();
-  if (row === undefined) {
-    return err(`No drive item with slug: ${slug}`);
-  }
-  if (!row.archived) {
-    return err('Drive item is not archived');
-  }
-  const fromPkg = path.join(root, archivedDriveItemPackageDir(slug));
-  const toPkg = path.join(root, driveItemPackageDir(slug));
-  try {
-    await rename(fromPkg, toPkg);
-  } catch (e) {
-    return err(e instanceof Error ? e.message : String(e));
-  }
-  const relPath = driveItemDocumentPath(slug);
-  const absDoc = path.join(root, relPath);
-  const raw = await readFile(absDoc, 'utf8');
-  const parsed = parseDriveItemDocument(raw);
-  if (!parsed.ok) {
-    return err(parsed.error);
-  }
-  const next: DriveItemMeta = {
-    ...parsed.value.meta,
-    archived: false,
-    archived_at: null,
-    archive_reason: null,
-  };
-  await writeFile(absDoc, serializeDriveItem(next, parsed.value.body), 'utf8');
-  const st = await stat(absDoc);
-  upsertDriveItem(db, next, relPath, st.birthtime.toISOString(), st.mtime.toISOString());
-  return ok(true);
-}

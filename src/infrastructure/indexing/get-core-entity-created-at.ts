@@ -23,7 +23,6 @@ export function getCoreEntityCreatedAt(
       return db.select({ c: schema.notes.created_at }).from(schema.notes).where(eq(schema.notes.id, id)).get()?.c;
     case 'inbox_item':
       return db.select({ c: schema.inboxItems.created_at }).from(schema.inboxItems).where(eq(schema.inboxItems.id, id)).get()?.c;
-    case 'archive_record':
-      return undefined;
+
   }
 }

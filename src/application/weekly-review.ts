@@ -12,7 +12,7 @@ import { buildDashboardData } from './dashboard-data.js';
 export interface WeeklyReviewReportModel {
   readonly date: string;
   readonly inboxCount: number;
-  readonly archivedEntityCount: number;
+
   readonly staleTasks: readonly ListedEntityRow[];
   readonly recentlyCompletedTasks: readonly ListedEntityRow[];
   readonly focusTasks: readonly ListedEntityRow[];
@@ -29,7 +29,7 @@ export function buildWeeklyReviewReport(db: SecondBrainDb, asOf: Date = new Date
   const dash = buildDashboardData(db, { daily: { asOf } });
   const daily = dash.daily;
 
-  const tasks = listEntitiesInIndex(db, 'task', { includeArchived: false, limit: 500 });
+  const tasks = listEntitiesInIndex(db, 'task', { limit: 500 });
   const staleCut = addCalendarDays(date, -14);
   const staleTasks = tasks
     .filter((t) => !isCompletedTaskStatus(t.status) && t.updated_at.slice(0, 10) < staleCut)
@@ -43,7 +43,7 @@ export function buildWeeklyReviewReport(db: SecondBrainDb, asOf: Date = new Date
   return {
     date,
     inboxCount: daily.inboxCount,
-    archivedEntityCount: dash.archivedEntityCount,
+
     staleTasks,
     recentlyCompletedTasks,
     focusTasks: daily.focus,
@@ -59,7 +59,7 @@ export function renderWeeklyReviewMarkdown(model: WeeklyReviewReportModel): stri
   lines.push('## Snapshot');
   lines.push('');
   lines.push(`- Inbox: **${String(model.inboxCount)}** unprocessed`);
-  lines.push(`- Archived entities (all kinds): **${String(model.archivedEntityCount)}**`);
+
   lines.push('');
   lines.push('## Overdue tasks');
   lines.push('');

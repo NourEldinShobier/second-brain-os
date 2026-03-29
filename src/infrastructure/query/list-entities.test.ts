@@ -43,7 +43,6 @@ describe('listEntitiesInIndex', () => {
     expect(t2.ok).toBe(true);
 
     const todos = listEntitiesInIndex(db, 'task', {
-      includeArchived: false,
       limit: 50,
       status: 'todo',
     });
@@ -51,24 +50,6 @@ describe('listEntitiesInIndex', () => {
     expect(todos.some((r) => r.slug === 'open-task')).toBe(true);
     expect(todos.some((r) => r.slug === 'done-task')).toBe(false);
 
-    db.update(schema.tasks)
-      .set({ archived: true })
-      .where(eq(schema.tasks.slug, 'open-task'))
-      .run();
-
-    const afterArchive = listEntitiesInIndex(db, 'task', {
-      includeArchived: false,
-      limit: 50,
-      status: 'todo',
-    });
-    expect(afterArchive.some((r) => r.slug === 'open-task')).toBe(false);
-
-    const withArchived = listEntitiesInIndex(db, 'task', {
-      includeArchived: true,
-      limit: 50,
-      status: 'todo',
-    });
-    expect(withArchived.some((r) => r.slug === 'open-task')).toBe(true);
   });
 
   it('filters tasks by due date', async () => {
@@ -99,7 +80,6 @@ describe('listEntitiesInIndex', () => {
     });
 
     const june = listEntitiesInIndex(db, 'task', {
-      includeArchived: false,
       limit: 50,
       dueDate: '2026-06-01',
     });

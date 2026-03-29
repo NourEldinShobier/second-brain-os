@@ -54,7 +54,7 @@ export function buildMetaForReclassify(
     slug: meta.slug,
     title: meta.title,
     status: defaultStatus(toKind),
-    archived: meta.archived,
+
     ...(meta.area_ids !== undefined && meta.area_ids.length > 0 ? { area_ids: [...meta.area_ids] } : {}),
     ...(meta.goal_ids !== undefined && meta.goal_ids.length > 0 ? { goal_ids: [...meta.goal_ids] } : {}),
     ...(meta.project_ids !== undefined && meta.project_ids.length > 0 ? { project_ids: [...meta.project_ids] } : {}),

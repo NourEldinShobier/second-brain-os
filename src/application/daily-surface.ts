@@ -91,7 +91,6 @@ export function buildDailySurface(input: DailySurfaceInput): DailySurface {
   const inboxSampleSize = input.inboxSampleSize ?? 5;
 
   const allTasks = listEntitiesInIndex(input.db, 'task', {
-    includeArchived: false,
     limit: taskLimit,
   });
   const active = allTasks.filter((t) => !isCompletedTaskStatus(t.status));
@@ -150,14 +149,12 @@ export function buildDailySurface(input: DailySurfaceInput): DailySurface {
   const backlogTotal = backlogAll.length;
 
   const inboxRows = listEntitiesInIndex(input.db, 'inbox_item', {
-    includeArchived: false,
     limit: 10_000,
   });
   const inboxCount = inboxRows.length;
   const inboxSample = inboxRows.slice(0, inboxSampleSize);
 
   const projects = listEntitiesInIndex(input.db, 'project', {
-    includeArchived: false,
     limit: 100,
   });
   const activeProjects = projects.filter((p) => isActiveProjectStatus(p.status)).slice(0, 15);

@@ -15,7 +15,6 @@ This document explains how a Second Brain OS vault is laid out on disk: the fold
 4. [Frontmatter Field Reference](#frontmatter-field-reference)
 5. [Folder → Entity Kind Mapping](#folder--entity-kind-mapping)
 6. [Drive Items Structure](#drive-items-structure)
-7. [Archive Layout](#archive-layout)
 8. [Config File](#config-file)
 
 ---
@@ -68,7 +67,6 @@ MyVault/
 ├── 08-reviews/                 ← Generated review artifacts
 │   └── weekly-2026-01-13.md
 │
-└── 99-archive/                 ← Archived entities (by kind)
     ├── inbox/
     ├── areas/
     ├── goals/
@@ -115,7 +113,6 @@ second_brain:
   slug: "write-q1-report"
   title: "Write Q1 Report"
   status: "next"
-  archived: false
 
   # Scheduling (tasks only)
   due_date: "2026-03-31"
@@ -152,12 +149,10 @@ Body content goes here as regular Markdown...
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | UUID string | ✅ | Stable primary key — never changes |
-| `kind` | enum | ✅ | `inbox_item` \| `area` \| `goal` \| `project` \| `task` \| `resource` \| `note` \| `archive_record` |
 | `version` | `1` | ✅ | Schema version (currently always `1`) |
 | `slug` | kebab-case string | ✅ | URL-safe identifier, max 120 chars, pattern `^[a-z0-9]+(-[a-z0-9]+)*$` |
 | `title` | string | ✅ | Human-readable title |
 | `status` | string | ✅ | Kind-specific status (see Status Vocabularies) |
-| `archived` | boolean | ✅ | `false` = active, `true` = archived |
 
 ### Inbox-Specific Fields
 
@@ -230,12 +225,9 @@ These are **outgoing edges** — the IDs of related entities. They are mirrored 
 | `resource_ids` | UUID[] | task |
 | `note_ids` | UUID[] | task |
 
-### Archive Bookkeeping Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `archived_at` | ISO-8601 \| null | When archived |
-| `archive_reason` | string \| null | Why archived |
 
 ### Assets Field
 
@@ -257,17 +249,7 @@ assets:
 
 ```
 ┌──────────────┬────────────────┬─────────────────────────────────────┐
-│ Folder       │ Entity Kind    │ Archive Destination                  │
 ├──────────────┼────────────────┼─────────────────────────────────────┤
-│ 00-inbox/    │ inbox_item     │ 99-archive/inbox/                    │
-│ 01-areas/    │ area           │ 99-archive/areas/                    │
-│ 02-goals/    │ goal           │ 99-archive/goals/                    │
-│ 03-projects/ │ project        │ 99-archive/projects/                 │
-│ 04-tasks/    │ task           │ 99-archive/tasks/                    │
-│ 05-resources/│ resource       │ 99-archive/resources/                │
-│ 06-notes/    │ note           │ 99-archive/notes/                    │
-│ 07-drive/    │ (drive_item)   │ 99-archive/drive/                    │
-│ 99-archive/  │ archive_record │ (is the archive destination)         │
 └──────────────┴────────────────┴─────────────────────────────────────┘
 ```
 
@@ -308,9 +290,6 @@ drive_item:
   mime_type: "application/pdf"  # optional
   sha256: "abc123..."           # optional
   child_count: null             # for folders: number of files
-  archived: false
-  archived_at: null
-  archive_reason: null
 
   # Linked entities (UUIDs)
   area_ids: []
@@ -326,19 +305,13 @@ Body / notes about this drive item...
 
 ---
 
-## Archive Layout
 
-When you run `archive <kind> <slug>`, the entity's entire package directory is **moved** (not copied) into the corresponding archive subfolder:
 
 ```
-Before archive:
   04-tasks/write-report/index.md
 
-After archive:
-  99-archive/tasks/write-report/index.md
 ```
 
-The frontmatter `archived: true` is also updated, and an `archive_events` row is written to the DB recording the path change. This means `doctor --repair` can always re-sync if the files are manually moved.
 
 ---
 

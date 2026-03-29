@@ -2,13 +2,11 @@ import type { Command } from 'commander';
 import path from 'node:path';
 import {
   applyDriveItemLinks,
-  archiveDriveItem,
   findDriveItemByRef,
   importDrivePayload,
   listDriveItems,
   loadDriveItemBody,
   parseDriveLinkClearKinds,
-  restoreDriveItem,
   updateDriveItemMetadata,
   type DriveListFilters,
 } from '../../application/drive-vault-service.js';
@@ -114,7 +112,7 @@ export async function runDriveList(
   const db = openAndMigrate(resolved.value.databaseAbsolutePath);
   try {
     const filters: DriveListFilters = {
-      includeArchived: opts.includeArchived === true,
+
       areaIds: opts.area !== undefined ? (opts.area.length > 0 ? opts.area : undefined) : undefined,
       projectIds: opts.project !== undefined ? (opts.project.length > 0 ? opts.project : undefined) : undefined,
       taskIds: opts.task !== undefined ? (opts.task.length > 0 ? opts.task : undefined) : undefined,
@@ -135,10 +133,9 @@ export async function runDriveList(
         presentation.bodyLine(ctx, 'No drive items.');
       } else {
         for (const row of rows) {
-          const tag = row.archived ? ' [archived]' : '';
           presentation.bodyLine(
             ctx,
-            `${row.slug}  ${row.title}  ${row.item_type}${tag}  ${row.file_path}`,
+            `${row.slug}  ${row.title}  ${row.item_type}  ${row.file_path}`,
           );
         }
       }
@@ -164,7 +161,7 @@ export async function runDriveShow(command: Command, ref: string, opts: { includ
   }
   const db = openAndMigrate(resolved.value.databaseAbsolutePath);
   try {
-    const r = findDriveItemByRef(db, ref, opts.includeArchived === true);
+    const r = findDriveItemByRef(db, ref);
     if (!r.ok) {
       cliFailed();
       const env = errorEnvelope([recoverableError(ErrorCodes.VALIDATION, r.error)], []);
@@ -201,83 +198,7 @@ export async function runDriveShow(command: Command, ref: string, opts: { includ
   }
 }
 
-export async function runDriveArchive(
-  command: Command,
-  slug: string,
-  opts: { reason?: string },
-): Promise<void> {
-  const ctx = commandContextFrom(command);
-  const resolved = await resolveWorkspaceForCli(ctx);
-  if (!resolved.ok) {
-    cliFailed();
-    const next = [
-      'Create a workspace with `second-brain-os init`.',
-      'Or set `--workspace` / `SECOND_BRAIN_WORKSPACE` to an existing workspace.',
-    ];
-    const errors = workspaceFailureToErrors(resolved.error);
-    if (isJsonOutput(ctx)) printJsonEnvelope(errorEnvelope(errors, next));
-    else emitQuietFallback(ctx, errors.map((e) => e.message).join('; '));
-    return;
-  }
-  const db = openAndMigrate(resolved.value.databaseAbsolutePath);
-  try {
-    const r = await archiveDriveItem(resolved.value.workspaceRoot, db, slug, opts.reason);
-    if (!r.ok) {
-      cliFailed();
-      const env = errorEnvelope([recoverableError(ErrorCodes.VALIDATION, r.error)], []);
-      if (isJsonOutput(ctx)) printJsonEnvelope(env);
-      else if (shouldPrintHuman(ctx)) presentation.errorBlock(ctx, r.error);
-      else emitQuietFallback(ctx, r.error);
-      return;
-    }
-    const env = successEnvelope(
-      { slug, file_path: r.value.newPath, workspace_root: resolved.value.workspaceRoot },
-      [],
-      [],
-    );
-    if (isJsonOutput(ctx)) printJsonEnvelope(env);
-    else if (shouldPrintHuman(ctx)) {
-      presentation.bodyLine(ctx, `Archived drive item ${slug} → ${r.value.newPath}`);
-    }
-  } finally {
-    closeSecondBrainDatabase(db);
-  }
-}
 
-export async function runDriveRestore(command: Command, slug: string): Promise<void> {
-  const ctx = commandContextFrom(command);
-  const resolved = await resolveWorkspaceForCli(ctx);
-  if (!resolved.ok) {
-    cliFailed();
-    const next = [
-      'Create a workspace with `second-brain-os init`.',
-      'Or set `--workspace` / `SECOND_BRAIN_WORKSPACE` to an existing workspace.',
-    ];
-    const errors = workspaceFailureToErrors(resolved.error);
-    if (isJsonOutput(ctx)) printJsonEnvelope(errorEnvelope(errors, next));
-    else emitQuietFallback(ctx, errors.map((e) => e.message).join('; '));
-    return;
-  }
-  const db = openAndMigrate(resolved.value.databaseAbsolutePath);
-  try {
-    const r = await restoreDriveItem(resolved.value.workspaceRoot, db, slug);
-    if (!r.ok) {
-      cliFailed();
-      const env = errorEnvelope([recoverableError(ErrorCodes.VALIDATION, r.error)], []);
-      if (isJsonOutput(ctx)) printJsonEnvelope(env);
-      else if (shouldPrintHuman(ctx)) presentation.errorBlock(ctx, r.error);
-      else emitQuietFallback(ctx, r.error);
-      return;
-    }
-    const env = successEnvelope({ slug, workspace_root: resolved.value.workspaceRoot }, [], []);
-    if (isJsonOutput(ctx)) printJsonEnvelope(env);
-    else if (shouldPrintHuman(ctx)) {
-      presentation.bodyLine(ctx, `Restored drive item ${slug}`);
-    }
-  } finally {
-    closeSecondBrainDatabase(db);
-  }
-}
 
 export async function runDriveLink(
   command: Command,
@@ -333,7 +254,6 @@ export async function runDriveLink(
         clearKinds: cleared.value,
         dryRun: ctx.dryRun,
       },
-      opts.includeArchived === true,
     );
     if (!r.ok) {
       cliFailed();
@@ -426,7 +346,6 @@ export async function runDriveUpdate(
       db,
       driveRef,
       patch,
-      opts.includeArchived === true,
       { dryRun: ctx.dryRun },
     );
     if (!r.ok) {

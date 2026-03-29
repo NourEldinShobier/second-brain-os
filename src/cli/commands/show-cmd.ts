@@ -13,9 +13,7 @@ import { workspaceFailureToErrors } from '../map-workspace-failure.js';
 import * as presentation from '../presentation/blocks.js';
 import { resolveWorkspaceForCli } from '../workspace-resolve.js';
 
-export interface ShowCliOptions {
-  readonly includeArchived?: boolean;
-}
+export interface ShowCliOptions {}
 
 export async function runShow(command: Command, target: string): Promise<void> {
   const ctx = commandContextFrom(command);
@@ -62,7 +60,7 @@ export async function runShow(command: Command, target: string): Promise<void> {
 
   const db = openAndMigrate(resolved.value.databaseAbsolutePath);
   const repo = new MarkdownWorkspaceRepository(resolved.value.workspaceRoot);
-  const detail = await loadShowDetail(db, repo, ref, opts.includeArchived === true);
+  const detail = await loadShowDetail(db, repo, ref);
   if (!detail.ok) {
     cliFailed();
     const env = errorEnvelope([recoverableError(ErrorCodes.VALIDATION, detail.error)], []);
@@ -87,7 +85,7 @@ export async function runShow(command: Command, target: string): Promise<void> {
       slug: d.row.slug,
       title: d.row.title,
       status: d.row.status,
-      archived: d.row.archived,
+
       file_path: d.row.file_path,
       updated_at: d.row.updated_at,
     },
@@ -123,7 +121,7 @@ export async function runShow(command: Command, target: string): Promise<void> {
   if (shouldPrintHuman(ctx)) {
     presentation.heading(ctx, 'show');
     presentation.bodyLine(ctx, `${d.row.kind} ${d.row.slug} — ${d.row.title}`);
-    presentation.bodyLine(ctx, `Status: ${d.row.status}  ${d.row.archived ? '(archived)' : ''}`);
+    presentation.bodyLine(ctx, `Status: ${d.row.status}`);
     presentation.bodyLine(ctx, `Path: ${d.row.file_path}`);
     presentation.bodyLine(ctx, `Links out: ${String(d.forward.length)} · Backlinks: ${String(d.backlinks.length)}`);
     presentation.bodyLine(ctx, '');

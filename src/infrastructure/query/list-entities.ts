@@ -7,8 +7,7 @@ export type { ListableEntityKind } from '../../domain/listable-kind.js';
 
 export interface ListEntitiesFilters {
   readonly status?: string | undefined;
-  /** When false (default), only non-archived rows. */
-  readonly includeArchived: boolean;
+
   readonly limit: number;
   /** Tasks only: exact match on `do_date` (YYYY-MM-DD). */
   readonly dueDate?: string | undefined;
@@ -21,7 +20,7 @@ export interface ListedEntityRow {
   readonly title: string;
   readonly status: string;
   readonly file_path: string;
-  readonly archived: boolean;
+
   readonly updated_at: string;
   readonly priority: number | null;
   readonly do_date: string | null;
@@ -47,7 +46,7 @@ export function listEntitiesInIndex(
   switch (kind) {
     case 'area': {
       const conds = [
-        filters.includeArchived ? undefined : eq(schema.areas.archived, false),
+
         filters.status ? eq(schema.areas.status, filters.status) : undefined,
       ].filter((c): c is NonNullable<typeof c> => c !== undefined);
       const rows = db
@@ -64,7 +63,7 @@ export function listEntitiesInIndex(
         title: r.title,
         status: r.status,
         file_path: r.file_path,
-        archived: r.archived,
+
         updated_at: r.updated_at,
         priority: null,
         do_date: null,
@@ -73,7 +72,7 @@ export function listEntitiesInIndex(
     }
     case 'goal': {
       const conds = [
-        filters.includeArchived ? undefined : eq(schema.goals.archived, false),
+
         filters.status ? eq(schema.goals.status, filters.status) : undefined,
       ].filter((c): c is NonNullable<typeof c> => c !== undefined);
       const rows = db
@@ -90,7 +89,7 @@ export function listEntitiesInIndex(
         title: r.title,
         status: r.status,
         file_path: r.file_path,
-        archived: r.archived,
+
         updated_at: r.updated_at,
         priority: null,
         do_date: null,
@@ -99,7 +98,7 @@ export function listEntitiesInIndex(
     }
     case 'project': {
       const conds = [
-        filters.includeArchived ? undefined : eq(schema.projects.archived, false),
+
         filters.status ? eq(schema.projects.status, filters.status) : undefined,
       ].filter((c): c is NonNullable<typeof c> => c !== undefined);
       const rows = db
@@ -116,7 +115,7 @@ export function listEntitiesInIndex(
         title: r.title,
         status: r.status,
         file_path: r.file_path,
-        archived: r.archived,
+
         updated_at: r.updated_at,
         priority: r.priority ?? null,
         do_date: null,
@@ -125,7 +124,7 @@ export function listEntitiesInIndex(
     }
     case 'task': {
       const conds = [
-        filters.includeArchived ? undefined : eq(schema.tasks.archived, false),
+
         filters.status ? eq(schema.tasks.status, filters.status) : undefined,
         filters.dueDate ? eq(schema.tasks.do_date, filters.dueDate) : undefined,
       ].filter((c): c is NonNullable<typeof c> => c !== undefined);
@@ -143,7 +142,7 @@ export function listEntitiesInIndex(
         title: r.title,
         status: r.status,
         file_path: r.file_path,
-        archived: r.archived,
+
         updated_at: r.updated_at,
         priority: r.priority ?? null,
         do_date: r.do_date ?? null,
@@ -152,7 +151,7 @@ export function listEntitiesInIndex(
     }
     case 'resource': {
       const conds = [
-        filters.includeArchived ? undefined : eq(schema.resources.archived, false),
+
         filters.status ? eq(schema.resources.status, filters.status) : undefined,
       ].filter((c): c is NonNullable<typeof c> => c !== undefined);
       const rows = db
@@ -169,7 +168,7 @@ export function listEntitiesInIndex(
         title: r.title,
         status: r.status,
         file_path: r.file_path,
-        archived: r.archived,
+
         updated_at: r.updated_at,
         priority: null,
         do_date: null,
@@ -178,7 +177,7 @@ export function listEntitiesInIndex(
     }
     case 'note': {
       const conds = [
-        filters.includeArchived ? undefined : eq(schema.notes.archived, false),
+
         filters.status ? eq(schema.notes.status, filters.status) : undefined,
       ].filter((c): c is NonNullable<typeof c> => c !== undefined);
       const rows = db
@@ -195,7 +194,7 @@ export function listEntitiesInIndex(
         title: r.title,
         status: r.status,
         file_path: r.file_path,
-        archived: r.archived,
+
         updated_at: r.updated_at,
         priority: null,
         do_date: null,
@@ -204,7 +203,7 @@ export function listEntitiesInIndex(
     }
     case 'inbox_item': {
       const conds = [
-        filters.includeArchived ? undefined : eq(schema.inboxItems.archived, false),
+
         filters.status ? eq(schema.inboxItems.status, filters.status) : undefined,
       ].filter((c): c is NonNullable<typeof c> => c !== undefined);
       const rows = db
@@ -221,7 +220,7 @@ export function listEntitiesInIndex(
         title: r.title,
         status: r.status,
         file_path: r.file_path,
-        archived: r.archived,
+
         updated_at: r.updated_at,
         priority: null,
         do_date: null,

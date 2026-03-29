@@ -11,13 +11,13 @@ import {
   runOrganizeRename,
   runOrganizeReclassify,
 } from './commands/organize-cmd.js';
-import { runArchive } from './commands/archive-cmd.js';
+
 import {
-  runDriveArchive,
+
   runDriveImport,
   runDriveLink,
   runDriveList,
-  runDriveRestore,
+
   runDriveShow,
   runDriveUpdate,
 } from './commands/drive-cmd.js';
@@ -189,7 +189,7 @@ export function createProgram(): Command {
     .description('Filter and list entities from the index')
     .argument('[entity]', 'tasks, areas, goals, projects, notes, resources, inbox')
     .option('--status <s>', 'filter by workflow status')
-    .option('--include-archived', 'include archived entities')
+
     .option('--limit <n>', 'max items (default 100, max 500)', '100')
     .option('--due <date>', 'tasks only: filter by do_date (YYYY-MM-DD)')
     .action(async (entity: string | undefined, _options: unknown, command: Command) => {
@@ -200,7 +200,7 @@ export function createProgram(): Command {
     .command('show')
     .description('Inspect a single entity with related context')
     .argument('<target>', 'entity slug or id')
-    .option('--include-archived', 'include archived entities')
+
     .action(async (target: string, _options: unknown, command: Command) => {
       await runShow(command, target);
     });
@@ -241,7 +241,7 @@ export function createProgram(): Command {
   driveCmd
     .command('list')
     .description('List drive items from the index')
-    .option('--include-archived', 'include archived drive items', false)
+
     .option(
       '--area <ref>',
       'filter by area id or slug (repeatable)',
@@ -301,26 +301,9 @@ export function createProgram(): Command {
     .command('show')
     .description('Show a drive item by slug or id')
     .argument('<ref>', 'slug or stable id')
-    .option('--include-archived', 'resolve archived items', false)
+
     .action(async (ref: string, opts: { includeArchived?: boolean }, command: Command) => {
       await runDriveShow(command, ref, opts);
-    });
-
-  driveCmd
-    .command('archive')
-    .description('Move a drive item package to 99-archive/drive/')
-    .argument('<slug>', 'drive item slug')
-    .option('--reason <text>', 'archive reason stored in metadata')
-    .action(async (slug: string, opts: { reason?: string }, command: Command) => {
-      await runDriveArchive(command, slug, opts);
-    });
-
-  driveCmd
-    .command('restore')
-    .description('Restore an archived drive item to 07-drive/items/')
-    .argument('<slug>', 'drive item slug')
-    .action(async (slug: string, _options: unknown, command: Command) => {
-      await runDriveRestore(command, slug);
     });
 
   driveCmd
@@ -359,7 +342,7 @@ export function createProgram(): Command {
     )
     .option('--replace', 'set each provided kind to exactly these refs (no merge)', false)
     .option('--clear <kinds>', 'comma-separated kinds to clear first: area,project,task,note,goal')
-    .option('--include-archived', 'allow archived drive items', false)
+
     .action(
       async (
         driveRef: string,
@@ -392,7 +375,7 @@ export function createProgram(): Command {
     )
     .option('--clear-tags', 'remove all tags', false)
     .option('--body <text>', 'markdown body')
-    .option('--include-archived', 'allow archived drive items', false)
+
     .action(
       async (
         driveRef: string,
@@ -408,17 +391,6 @@ export function createProgram(): Command {
         await runDriveUpdate(command, driveRef, opts);
       },
     );
-
-  program
-    .command('archive')
-    .description('Archive or restore entities')
-    .argument('<kind>', 'area | goal | project | task | resource | note | inbox')
-    .argument('<slug>', 'entity slug')
-    .option('--restore', 'restore from archive to active', false)
-    .option('--reason <text>', 'optional reason when archiving')
-    .action(async (kind: string, slug: string, _options: unknown, command: Command) => {
-      await runArchive(command, kind, slug);
-    });
 
   program
     .command('doctor')

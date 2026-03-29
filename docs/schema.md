@@ -28,7 +28,6 @@ The SQLite database is a **derivative index** of the Markdown vault. It is never
    - [entity\_taxonomy\_links](#-entity_taxonomy_links)
    - [taxonomy\_terms](#-taxonomy_terms)
    - [drive\_items](#-drive_items)
-   - [archive\_events](#-archive_events)
    - [reviews](#-reviews)
    - [workspace\_kv](#-workspace_kv)
 4. [Status Vocabularies](#status-vocabularies)
@@ -47,7 +46,6 @@ erDiagram
         text title
         text file_path
         text status
-        integer archived
         text area_type
         text created_at
         text updated_at
@@ -59,7 +57,6 @@ erDiagram
         text title
         text file_path
         text status
-        integer archived
         text target_date
         text quarter
         integer year
@@ -84,7 +81,6 @@ erDiagram
         text title
         text file_path
         text status
-        integer archived
         integer priority
         text start_date
         text end_date
@@ -98,7 +94,6 @@ erDiagram
         text title
         text file_path
         text status
-        integer archived
         integer priority
         text energy
         text do_date
@@ -114,7 +109,6 @@ erDiagram
         text title
         text file_path
         text status
-        integer archived
         text resource_type
         text source_url
         integer pinned
@@ -128,7 +122,6 @@ erDiagram
         text title
         text file_path
         text status
-        integer archived
         text topic_summary
         integer pinned
         integer favorite
@@ -143,7 +136,6 @@ erDiagram
         text title
         text file_path
         text status
-        integer archived
         text raw_input
         text suggested_entity_type
         text processed_at
@@ -190,9 +182,6 @@ erDiagram
         text mime_type
         text sha256
         integer child_count
-        integer archived
-        text archived_at
-        text archive_reason
         text area_ids_json
         text project_ids_json
         text task_ids_json
@@ -203,7 +192,6 @@ erDiagram
         text updated_at
     }
 
-    archive_events {
         text id PK
         text entity_type
         text entity_id
@@ -249,7 +237,6 @@ All core entity tables share the same foundational shape:
 │ title       │ TEXT — human readable name             │
 │ file_path   │ TEXT — workspace-relative path to .md  │
 │ status      │ TEXT — kind-specific workflow status   │
-│ archived    │ INTEGER (boolean) — 0=active, 1=archived│
 │ created_at  │ TEXT — ISO-8601 timestamp              │
 │ updated_at  │ TEXT — ISO-8601 timestamp              │
 └─────────────┴───────────────────────────────────────┘
@@ -272,7 +259,6 @@ All core entity tables share the same foundational shape:
 │ title                │ TEXT    │ Captured title/text           │
 │ file_path            │ TEXT    │ Path under 00-inbox/          │
 │ status               │ TEXT    │ See status vocab below        │
-│ archived             │ INTEGER │ Boolean flag                  │
 │ raw_input            │ TEXT    │ Original raw text from user   │
 │ suggested_entity_type│ TEXT    │ AI/heuristic suggestion       │
 │ processed_at         │ TEXT    │ When promoted/organized       │
@@ -301,8 +287,6 @@ All core entity tables share the same foundational shape:
 │ slug      │ TEXT    │ kebab-case identifier          │
 │ title     │ TEXT    │ Area name                      │
 │ file_path │ TEXT    │ Path under 01-areas/           │
-│ status    │ TEXT    │ active | archived              │
-│ archived  │ INTEGER │ Boolean flag                   │
 │ area_type │ TEXT    │ Optional classification label  │
 │ created_at│ TEXT    │ ISO-8601                       │
 │ updated_at│ TEXT    │ ISO-8601                       │
@@ -330,7 +314,6 @@ All core entity tables share the same foundational shape:
 │ title       │ TEXT    │ Goal title                     │
 │ file_path   │ TEXT    │ Path under 02-goals/           │
 │ status      │ TEXT    │ draft|active|completed|abandoned│
-│ archived    │ INTEGER │ Boolean flag                   │
 │ target_date │ TEXT    │ ISO date (optional)            │
 │ quarter     │ TEXT    │ e.g. "Q1", "Q2" (optional)    │
 │ year        │ INTEGER │ Calendar year (optional)       │
@@ -387,7 +370,6 @@ All core entity tables share the same foundational shape:
 │ title      │ TEXT    │ Project name                           │
 │ file_path  │ TEXT    │ Path under 03-projects/                │
 │ status     │ TEXT    │ inbox|active|on_hold|done|cancelled    │
-│ archived   │ INTEGER │ Boolean flag                           │
 │ priority   │ INTEGER │ Numeric priority level (optional)      │
 │ start_date │ TEXT    │ ISO date (optional)                    │
 │ end_date   │ TEXT    │ ISO date (optional)                    │
@@ -415,7 +397,6 @@ All core entity tables share the same foundational shape:
 │ title      │ TEXT    │ Task title                                     │
 │ file_path  │ TEXT    │ Path under 04-tasks/                           │
 │ status     │ TEXT    │ inbox|next|waiting|scheduled|done|cancelled    │
-│ archived   │ INTEGER │ Boolean flag                                   │
 │ priority   │ INTEGER │ Numeric priority (optional)                    │
 │ energy     │ TEXT    │ Energy label: low|medium|high (optional)       │
 │ do_date    │ TEXT    │ ISO date — when to do it (drives today/dash)   │
@@ -446,8 +427,6 @@ All core entity tables share the same foundational shape:
 │ slug          │ TEXT    │ kebab-case identifier          │
 │ title         │ TEXT    │ Resource title                 │
 │ file_path     │ TEXT    │ Path under 05-resources/      │
-│ status        │ TEXT    │ inbox | active | archived      │
-│ archived      │ INTEGER │ Boolean flag                   │
 │ resource_type │ TEXT    │ Optional classification label  │
 │ source_url    │ TEXT    │ Original URL/reference (opt)  │
 │ pinned        │ INTEGER │ Boolean — pin to top           │
@@ -474,8 +453,6 @@ All core entity tables share the same foundational shape:
 │ slug          │ TEXT    │ kebab-case identifier          │
 │ title         │ TEXT    │ Note title                     │
 │ file_path     │ TEXT    │ Path under 06-notes/           │
-│ status        │ TEXT    │ inbox | active | archived      │
-│ archived      │ INTEGER │ Boolean flag                   │
 │ topic_summary │ TEXT    │ Short generated/manual summary │
 │ pinned        │ INTEGER │ Boolean — pin to top           │
 │ favorite      │ INTEGER │ Boolean — mark as favorite     │
@@ -595,9 +572,6 @@ All core entity tables share the same foundational shape:
 │ mime_type       │ TEXT    │ MIME type (optional, for files)           │
 │ sha256          │ TEXT    │ File hash (optional)                      │
 │ child_count     │ INTEGER │ # files if item is a folder               │
-│ archived        │ INTEGER │ Boolean — is archived                     │
-│ archived_at     │ TEXT    │ When archived (optional)                  │
-│ archive_reason  │ TEXT    │ Why archived (optional)                   │
 │ area_ids_json   │ TEXT    │ JSON array of linked area UUIDs           │
 │ project_ids_json│ TEXT    │ JSON array of linked project UUIDs       │
 │ task_ids_json   │ TEXT    │ JSON array of linked task UUIDs           │
@@ -615,19 +589,15 @@ All core entity tables share the same foundational shape:
 
 ---
 
-### 📦 `archive_events`
 
 **Purpose:** Audit log of every archive and restore operation. Records where a file was and where it moved, enabling the `doctor` command to detect and repair path drift.
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│  archive_events                                        │
 ├───────────────┬─────────┬────────────────────────────┤
 │ Column        │ Type    │ Description                 │
 ├───────────────┼─────────┼────────────────────────────┤
 │ id            │ TEXT PK │ Stable UUID                 │
-│ entity_type   │ TEXT    │ Kind of archived entity     │
-│ entity_id     │ TEXT    │ UUID of archived entity     │
 │ occurred_at   │ TEXT    │ ISO-8601 event time         │
 │ reason        │ TEXT    │ User-supplied reason (opt)  │
 │ previous_path │ TEXT    │ Path before archiving       │
@@ -636,7 +606,6 @@ All core entity tables share the same foundational shape:
 └───────────────┴─────────┴────────────────────────────┘
 ```
 
-**Indexes:** `archive_events_entity_idx (entity_type, entity_id)`
 
 ---
 
@@ -690,12 +659,9 @@ Each entity kind has its own valid status set:
 │ Entity Kind    │ Valid Statuses                                        │
 ├────────────────┼──────────────────────────────────────────────────────┤
 │ inbox_item     │ inbox                                                 │
-│ area           │ active │ archived                                     │
 │ goal           │ draft │ active │ completed │ abandoned                │
 │ project        │ inbox │ active │ on_hold │ done │ cancelled           │
 │ task           │ inbox │ next │ waiting │ scheduled │ done │ cancelled │
-│ resource       │ inbox │ active │ archived                             │
-│ note           │ inbox │ active │ archived                             │
 └────────────────┴──────────────────────────────────────────────────────┘
 ```
 
@@ -737,8 +703,6 @@ updated_at  = "2026-01-15T09:42:00.000Z"
 SQLite has no native boolean type. The schema uses `INTEGER` with Drizzle's `{ mode: 'boolean' }` adapter:
 
 ```
-archived = 0   (false / active)
-archived = 1   (true / archived)
 ```
 
 ### file_path
@@ -781,7 +745,6 @@ All `file_path` columns store **workspace-relative** paths to the canonical `ind
 │ entity_links_to_idx                                     │ (to_entity_type, to_entity_id)      │
 │ drive_items_slug_idx                                    │ slug                                │
 │ drive_items_file_path_idx                               │ file_path                           │
-│ archive_events_entity_idx                               │ (entity_type, entity_id)            │
 │ reviews_kind_idx                                        │ review_kind                         │
 └─────────────────────────────────────────────────────────┴─────────────────────────────────────┘
 ```

@@ -7,4 +7,4 @@ export type CoreEntityKind =
   | 'task'
   | 'resource'
   | 'note'
-  | 'archive_record';
+  ;

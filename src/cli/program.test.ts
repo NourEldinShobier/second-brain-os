@@ -7,7 +7,7 @@ describe('createProgram', () => {
     const top = program.commands.map((c) => c.name()).sort();
     expect(top).toEqual(
       [
-        'archive',
+
         'capture',
         'config',
         'dashboard',
@@ -48,9 +48,9 @@ describe('createProgram', () => {
     expect(org?.commands.map((c) => c.name()).sort()).toEqual(['analyze', 'link', 'promote', 'reclassify', 'rename']);
   });
 
-  it('nests drive import, list, show, archive, restore under drive', () => {
+  it('nests drive import, list, show, link, update under drive', () => {
     const program = createProgram();
     const drive = program.commands.find((c) => c.name() === 'drive');
-    expect(drive?.commands.map((c) => c.name()).sort()).toEqual(['archive', 'import', 'link', 'list', 'restore', 'show', 'update']);
+    expect(drive?.commands.map((c) => c.name()).sort()).toEqual(['import', 'link', 'list', 'show', 'update']);
   });
 });

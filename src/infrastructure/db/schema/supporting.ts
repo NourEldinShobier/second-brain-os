@@ -51,21 +51,6 @@ export const entityLinks = sqliteTable(
   ],
 );
 
-export const archiveEvents = sqliteTable(
-  'archive_events',
-  {
-    id: text('id').primaryKey(),
-    entity_type: text('entity_type').notNull(),
-    entity_id: text('entity_id').notNull(),
-    occurred_at: text('occurred_at').notNull(),
-    reason: text('reason'),
-    previous_path: text('previous_path'),
-    new_path: text('new_path'),
-    created_at: text('created_at').notNull(),
-  },
-  (t) => [index('archive_events_entity_idx').on(t.entity_type, t.entity_id)],
-);
-
 export const reviews = sqliteTable(
   'reviews',
   {

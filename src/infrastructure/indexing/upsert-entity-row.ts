@@ -20,7 +20,6 @@ export function upsertArea(
       title: meta.title,
       file_path: relPath,
       status: meta.status,
-      archived: meta.archived,
       created_at: createdAt,
       updated_at: updatedAt,
     })
@@ -31,7 +30,6 @@ export function upsertArea(
         title: meta.title,
         file_path: relPath,
         status: meta.status,
-        archived: meta.archived,
         updated_at: updatedAt,
       },
     })
@@ -57,7 +55,6 @@ export function upsertGoal(
         title: meta.title,
         file_path: relPath,
         status: meta.status,
-        archived: meta.archived,
         target_date: meta.target_date ?? null,
         quarter: meta.quarter ?? null,
         year: meta.year ?? null,
@@ -71,7 +68,6 @@ export function upsertGoal(
           title: meta.title,
           file_path: relPath,
           status: meta.status,
-          archived: meta.archived,
           target_date: meta.target_date ?? null,
           quarter: meta.quarter ?? null,
           year: meta.year ?? null,
@@ -121,7 +117,6 @@ export function upsertProject(
       title: meta.title,
       file_path: relPath,
       status: meta.status,
-      archived: meta.archived,
       priority: meta.priority ?? null,
       start_date: undefined,
       end_date: undefined,
@@ -135,7 +130,6 @@ export function upsertProject(
         title: meta.title,
         file_path: relPath,
         status: meta.status,
-        archived: meta.archived,
         priority: meta.priority ?? null,
         updated_at: updatedAt,
       },
@@ -160,7 +154,6 @@ export function upsertTask(
       title: meta.title,
       file_path: relPath,
       status: meta.status,
-      archived: meta.archived,
       priority: meta.priority ?? null,
       energy: meta.energy ?? null,
       do_date: meta.due_date ?? null,
@@ -176,7 +169,6 @@ export function upsertTask(
         title: meta.title,
         file_path: relPath,
         status: meta.status,
-        archived: meta.archived,
         priority: meta.priority ?? null,
         energy: meta.energy ?? null,
         do_date: meta.due_date ?? null,
@@ -203,7 +195,6 @@ export function upsertResource(
       title: meta.title,
       file_path: relPath,
       status: meta.status,
-      archived: meta.archived,
       resource_type: undefined,
       source_url: meta.source_url ?? null,
       pinned: meta.pinned ?? null,
@@ -217,7 +208,6 @@ export function upsertResource(
         title: meta.title,
         file_path: relPath,
         status: meta.status,
-        archived: meta.archived,
         source_url: meta.source_url ?? null,
         pinned: meta.pinned ?? null,
         updated_at: updatedAt,
@@ -243,7 +233,6 @@ export function upsertNote(
       title: meta.title,
       file_path: relPath,
       status: meta.status,
-      archived: meta.archived,
       topic_summary: undefined,
       pinned: meta.pinned ?? null,
       favorite: meta.favorite ?? null,
@@ -258,7 +247,6 @@ export function upsertNote(
         title: meta.title,
         file_path: relPath,
         status: meta.status,
-        archived: meta.archived,
         pinned: meta.pinned ?? null,
         favorite: meta.favorite ?? null,
         notebook: meta.notebook ?? null,
@@ -292,7 +280,6 @@ export function upsertInbox(
       title: meta.title,
       file_path: relPath,
       status: meta.status,
-      archived: meta.archived,
       raw_input: rawInput,
       suggested_entity_type: meta.suggested_entity_type ?? null,
       processed_at: meta.processed_at ?? null,
@@ -306,7 +293,6 @@ export function upsertInbox(
         title: meta.title,
         file_path: relPath,
         status: meta.status,
-        archived: meta.archived,
         raw_input: rawInput,
         suggested_entity_type: meta.suggested_entity_type ?? null,
         processed_at: meta.processed_at ?? null,
@@ -346,7 +332,6 @@ export function upsertByKind(
     case 'inbox_item':
       upsertInbox(db, meta, relPath, createdAt, updatedAt, indexContext?.body);
       break;
-    case 'archive_record':
-      break;
+
   }
 }

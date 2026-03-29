@@ -104,54 +104,7 @@ describe('EntityCrudService', () => {
     expect(r.error).toContain('Unknown');
   });
 
-  it('archives a task then restores it to active storage', async () => {
-    const root = await mkdtemp(path.join(tmpdir(), 'sb-crud-archive-'));
-    await ensureCanonicalLayout(root);
-    const dbPath = path.join(root, '.second-brain', 'second-brain.db');
-    await mkdir(path.dirname(dbPath), { recursive: true });
-    const db = openAndMigrate(dbPath);
-    const repo = new MarkdownWorkspaceRepository(root);
-    const svc = new EntityCrudService(repo, db);
 
-    const area = await svc.createArea({ title: 'A', slug: 'a' });
-    expect(area.ok).toBe(true);
-    if (!area.ok) {
-      return;
-    }
-
-    const task = await svc.createTask({
-      title: 'Archivable',
-      slug: 'archivable',
-      areaIds: [area.value.meta.id],
-    });
-    expect(task.ok).toBe(true);
-    if (!task.ok) {
-      return;
-    }
-
-    const archived = await svc.archiveEntityBySlug('task', 'archivable', { reason: 'test' });
-    expect(archived.ok).toBe(true);
-    if (!archived.ok) {
-      return;
-    }
-
-    const rowA = db.select().from(schema.tasks).where(eq(schema.tasks.slug, 'archivable')).get();
-    expect(rowA?.archived).toBe(true);
-    expect(rowA?.file_path.startsWith('99-archive/tasks')).toBe(true);
-
-    const events = db.select().from(schema.archiveEvents).all();
-    expect(events.length).toBeGreaterThanOrEqual(1);
-
-    const restored = await svc.restoreEntityBySlug('task', 'archivable');
-    expect(restored.ok).toBe(true);
-    if (!restored.ok) {
-      return;
-    }
-
-    const rowB = db.select().from(schema.tasks).where(eq(schema.tasks.slug, 'archivable')).get();
-    expect(rowB?.archived).toBe(false);
-    expect(rowB?.file_path.startsWith('04-tasks')).toBe(true);
-  });
 
   it('reclassifies a note to a resource while preserving id', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'sb-crud-reclass-'));

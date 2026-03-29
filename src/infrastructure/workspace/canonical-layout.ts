@@ -55,7 +55,7 @@ export function archivedDriveItemDocumentPath(slug: string): string {
   return path.join(archivedDriveItemPackageDir(slug), DRIVE_ITEM_DOCUMENT).replace(/\\/g, '/');
 }
 
-type ActiveEntityKind = Exclude<CoreEntityKind, 'archive_record'>;
+type ActiveEntityKind = CoreEntityKind;
 
 /**
  * Folder segment under the kind root (e.g. `my-task` or `2026-01-02-my-capture` for dated inbox).

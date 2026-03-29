@@ -1,24 +1,24 @@
 import type { CoreEntityKind } from '../entity-kind.js';
 import { ACTIVE_FOLDER_BY_KIND, ARCHIVE_FOLDER_BY_KIND } from './folders.js';
 
-const ACTIVE_KIND_ROOT_TO_KIND: Record<string, Exclude<CoreEntityKind, 'archive_record'>> = (() => {
-  const out: Record<string, Exclude<CoreEntityKind, 'archive_record'>> = {};
+const ACTIVE_KIND_ROOT_TO_KIND: Record<string, CoreEntityKind> = (() => {
+  const out: Record<string, CoreEntityKind> = {};
   for (const [k, v] of Object.entries(ACTIVE_FOLDER_BY_KIND)) {
-    if (k === 'archive_record') continue;
-    out[v] = k as Exclude<CoreEntityKind, 'archive_record'>;
+
+    out[v] = k as CoreEntityKind;
   }
   return out;
 })();
 
-const ARCHIVE_ROOT_TO_KIND: Record<string, Exclude<CoreEntityKind, 'archive_record'>> = Object.fromEntries(
-  Object.entries(ARCHIVE_FOLDER_BY_KIND).map(([k, v]) => [v, k as Exclude<CoreEntityKind, 'archive_record'>]),
-) as Record<string, Exclude<CoreEntityKind, 'archive_record'>>;
+const ARCHIVE_ROOT_TO_KIND: Record<string, CoreEntityKind> = Object.fromEntries(
+  Object.entries(ARCHIVE_FOLDER_BY_KIND).map(([k, v]) => [v, k as CoreEntityKind]),
+) as Record<string, CoreEntityKind>;
 
 const INBOX_FOLDER_SEGMENT_DATED = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
 const ENTITY_INDEX_DOCUMENT = 'index.md';
 
 /** Filename prefix segment (before first hyphen of slug segment). */
-export const KIND_FILE_PREFIX: Record<Exclude<CoreEntityKind, 'archive_record'>, string> = {
+export const KIND_FILE_PREFIX: Record<CoreEntityKind, string> = {
   inbox_item: 'inbox',
   area: 'area',
   goal: 'goal',
@@ -45,7 +45,7 @@ export type ParsedFilename =
 
 /** Build default active filename for an entity (not for archive paths). */
 export function buildEntityFilename(
-  kind: Exclude<CoreEntityKind, 'archive_record'>,
+  kind: CoreEntityKind,
   slug: string,
   options?: { readonly inboxDate?: string },
 ): string {

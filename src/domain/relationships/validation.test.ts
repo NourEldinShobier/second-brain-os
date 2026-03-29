@@ -10,7 +10,6 @@ describe('validateRelationshipInvariants', () => {
       slug: 'run-10k',
       title: 'Run 10k',
       status: 'active',
-      archived: false,
     });
     expect(r.ok).toBe(false);
     if (r.ok) {
@@ -27,7 +26,6 @@ describe('validateRelationshipInvariants', () => {
       slug: 'run-10k',
       title: 'Run 10k',
       status: 'active',
-      archived: false,
       area_ids: ['33333333-3333-4333-8333-333333333333'],
     });
     expect(r.ok).toBe(true);
@@ -41,7 +39,6 @@ describe('validateRelationshipInvariants', () => {
       slug: 'site',
       title: 'Site',
       status: 'active',
-      archived: false,
     });
     expect(r.ok).toBe(false);
   });

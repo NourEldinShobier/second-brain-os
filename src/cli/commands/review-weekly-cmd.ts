@@ -44,7 +44,7 @@ export async function runReviewWeekly(command: Command): Promise<void> {
         would_write: `07-reviews/weekly/${model.date}-weekly-review.md`,
         sections: {
           inbox_count: model.inboxCount,
-          archived_entity_count: model.archivedEntityCount,
+
           overdue: model.overdueTasks.length,
           focus: model.focusTasks.length,
           upcoming: model.upcomingTasks.length,
@@ -90,7 +90,7 @@ export async function runReviewWeekly(command: Command): Promise<void> {
     date: model.date,
     report: {
       inbox_count: model.inboxCount,
-      archived_entity_count: model.archivedEntityCount,
+
       overdue_tasks: model.overdueTasks.map((t) => ({ slug: t.slug, title: t.title })),
       focus_tasks: model.focusTasks.map((t) => ({ slug: t.slug, title: t.title })),
       upcoming_tasks: model.upcomingTasks.map((t) => ({ slug: t.slug, title: t.title, do_date: t.do_date })),

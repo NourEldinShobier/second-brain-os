@@ -25,7 +25,7 @@ export const secondBrainMetaSchema = z.object({
     'task',
     'resource',
     'note',
-    'archive_record',
+    
   ]),
   /** Bump when fields change; keep migrations in mind. */
   version: z.literal(1),
@@ -33,8 +33,7 @@ export const secondBrainMetaSchema = z.object({
   title: z.string().min(1),
   /** Workflow status (kind-specific vocabulary; PRD §10). */
   status: z.string().min(1),
-  /** Distinct from workflow status — archive is a first-class transition (PRD). */
-  archived: z.boolean(),
+
 
   captured_at: z.string().optional(),
   suggested_entity_type: z.string().optional(),
@@ -64,9 +63,7 @@ export const secondBrainMetaSchema = z.object({
   resource_ids: z.array(z.uuid()).optional(),
   note_ids: z.array(z.uuid()).optional(),
 
-  /** When archived, optional bookkeeping for restore/doctor. */
-  archived_at: z.string().nullable().optional(),
-  archive_reason: z.string().nullable().optional(),
+
 });
 
 export type SecondBrainMeta = z.infer<typeof secondBrainMetaSchema>;

@@ -6,7 +6,7 @@ import type { SecondBrainDb } from '../infrastructure/db/open-database.js';
 import { resolveAreaIds, resolveProjectIds } from '../infrastructure/relationships/resolve-entity-ref.js';
 import type { EntityCrudService } from './entity-crud-service.js';
 
-export type TypedCaptureKind = Exclude<CoreEntityKind, 'inbox_item' | 'archive_record'>;
+export type TypedCaptureKind = Exclude<CoreEntityKind, 'inbox_item'>;
 
 export interface TypedCaptureInput {
   readonly kind: TypedCaptureKind;

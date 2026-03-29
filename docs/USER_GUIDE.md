@@ -14,7 +14,6 @@ This document explains what the **Second Brain OS** CLI (`second-brain-os`, alia
 
 - **Markdown files** are the durable source of truth for notes, tasks, projects, areas, goals, resources, inbox captures, and review artifacts.
 - A **SQLite database** (indexed metadata) keeps queries, search, and dashboards fast and consistent with what is on disk.
-- The CLI **captures**, **organizes**, **lists**, **searches**, **reviews**, **archives**, and **repairs** drift between files and the index—without requiring a hosted service.
 
 Think of it as: **files you own** + **a local index** + **one consistent command surface** (`second-brain-os` / `second-brain`).
 
@@ -143,7 +142,6 @@ The CLI expects a **PARA-style** folder structure (numbered prefixes may vary by
 - Inbox for quick capture  
 - Areas, goals, projects, tasks, resources, notes  
 - Reviews (daily / weekly)  
-- Archive  
 - **`.second-brain/`** — `config.yml`, SQLite path, indexes/state as implemented  
 
 Exact folders are created by **`init`** and documented in your workspace after setup.
@@ -258,25 +256,19 @@ second-brain-os capture --type task "Quick task" --status todo --body-file ./not
 | `sb show <slug\|id>` | One entity with context. |
 | `sb search [query...]` | Search titles/content/metadata (`--limit`, `--expand`). |
 
-### Review & archive
 
 | Command | Purpose |
 |---------|---------|
 | `sb review weekly` | Weekly review flow and artifacts. |
-| `sb archive <kind> <slug>` | Archive an entity. |
-| `sb archive <kind> <slug> --restore` | Restore from archive. |
 
 ### Vault drive (imported files and folders)
 
 | Command | Purpose |
 |---------|---------|
 | `sb drive import <path>` | Import a file or folder into `07-drive/items/`. Supports `--title`, `--description`, `--move`, `--tag`, and `--dry-run`. |
-| `sb drive list` | List drive items (filters: `--area`, `--project`, `--task`, `--note`, `--goal`, `--tag`, `--standalone`, `--include-archived`). |
 | `sb drive show <ref>` | Show drive item metadata and body. |
 | `sb drive link <drive_ref>` | Link drive item to areas/projects/tasks/notes/goals (`--area`, `--project`, `--task`, `--note`, `--goal`; `--replace`, `--clear`). |
 | `sb drive update <drive_ref>` | Update description, tags, or body (`--description`, `--tag`, `--body`, `--clear-tags`). |
-| `sb drive archive <slug>` | Move drive item to `99-archive/drive/`. |
-| `sb drive restore <slug>` | Restore archived drive item. |
 
 ### Health
 

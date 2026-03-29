@@ -45,17 +45,6 @@ function buildGoalProgress(db: SecondBrainDb, goal: ListedEntityRow): GoalProgre
   };
 }
 
-function totalArchivedEntities(db: SecondBrainDb): number {
-  return (
-    db.select().from(schema.areas).where(eq(schema.areas.archived, true)).all().length +
-    db.select().from(schema.goals).where(eq(schema.goals.archived, true)).all().length +
-    db.select().from(schema.projects).where(eq(schema.projects.archived, true)).all().length +
-    db.select().from(schema.tasks).where(eq(schema.tasks.archived, true)).all().length +
-    db.select().from(schema.resources).where(eq(schema.resources.archived, true)).all().length +
-    db.select().from(schema.notes).where(eq(schema.notes.archived, true)).all().length
-  );
-}
-
 export interface DashboardDataOptions {
   readonly daily?: Omit<DailySurfaceInput, 'db'>;
 }
@@ -65,7 +54,7 @@ export interface DashboardData {
   readonly goals: readonly GoalProgressRow[];
   readonly recentNotes: readonly ListedEntityRow[];
   readonly recentResources: readonly ListedEntityRow[];
-  readonly archivedEntityCount: number;
+
   readonly lastWeeklyReview: { readonly startedAt: string; readonly completedAt: string | null } | null;
 }
 
@@ -73,14 +62,13 @@ export interface DashboardData {
 export function buildDashboardData(db: SecondBrainDb, options: DashboardDataOptions = {}): DashboardData {
   const daily = buildDailySurface({ db, ...options.daily });
 
-  const goalRows = listEntitiesInIndex(db, 'goal', { includeArchived: false, limit: 50 });
+  const goalRows = listEntitiesInIndex(db, 'goal', { limit: 50 });
   const goalsInFlight = goalRows.filter((g) => !isCompletedGoalStatus(g.status)).slice(0, 12);
   const goals = goalsInFlight.map((g) => buildGoalProgress(db, g));
 
-  const recentNotes = listEntitiesInIndex(db, 'note', { includeArchived: false, limit: 6 });
-  const recentResources = listEntitiesInIndex(db, 'resource', { includeArchived: false, limit: 6 });
+  const recentNotes = listEntitiesInIndex(db, 'note', { limit: 6 });
+  const recentResources = listEntitiesInIndex(db, 'resource', { limit: 6 });
 
-  const archivedEntityCount = totalArchivedEntities(db);
 
   const last = db
     .select()
@@ -99,7 +87,7 @@ export function buildDashboardData(db: SecondBrainDb, options: DashboardDataOpti
     goals,
     recentNotes,
     recentResources,
-    archivedEntityCount,
+
     lastWeeklyReview,
   };
 }

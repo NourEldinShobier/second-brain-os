@@ -85,9 +85,7 @@ export async function searchWorkspaceMarkdown(
       continue;
     }
     const kind = p.value.meta.kind;
-    if (kind === 'archive_record') {
-      continue;
-    }
+
     const k = kind as ListableEntityKind;
     const titleHit = p.value.meta.title.toLowerCase().includes(ql);
     const bodyHit = p.value.body.toLowerCase().includes(ql);

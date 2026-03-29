@@ -18,7 +18,7 @@ export interface FoundEntityRow {
   readonly title: string;
   readonly status: string;
   readonly file_path: string;
-  readonly archived: boolean;
+
   readonly updated_at: string;
 }
 
@@ -30,7 +30,7 @@ function rowFromArea(r: typeof schema.areas.$inferSelect): FoundEntityRow {
     title: r.title,
     status: r.status,
     file_path: r.file_path,
-    archived: r.archived,
+
     updated_at: r.updated_at,
   };
 }
@@ -43,7 +43,7 @@ function rowFromGoal(r: typeof schema.goals.$inferSelect): FoundEntityRow {
     title: r.title,
     status: r.status,
     file_path: r.file_path,
-    archived: r.archived,
+
     updated_at: r.updated_at,
   };
 }
@@ -56,7 +56,7 @@ function rowFromProject(r: typeof schema.projects.$inferSelect): FoundEntityRow 
     title: r.title,
     status: r.status,
     file_path: r.file_path,
-    archived: r.archived,
+
     updated_at: r.updated_at,
   };
 }
@@ -69,7 +69,7 @@ function rowFromTask(r: typeof schema.tasks.$inferSelect): FoundEntityRow {
     title: r.title,
     status: r.status,
     file_path: r.file_path,
-    archived: r.archived,
+
     updated_at: r.updated_at,
   };
 }
@@ -82,7 +82,7 @@ function rowFromResource(r: typeof schema.resources.$inferSelect): FoundEntityRo
     title: r.title,
     status: r.status,
     file_path: r.file_path,
-    archived: r.archived,
+
     updated_at: r.updated_at,
   };
 }
@@ -95,12 +95,11 @@ function rowFromNote(r: typeof schema.notes.$inferSelect): FoundEntityRow {
     title: r.title,
     status: r.status,
     file_path: r.file_path,
-    archived: r.archived,
+
     updated_at: r.updated_at,
   };
 }
 
-export type ArchivedFilter = 'active' | 'archived' | 'either';
 
 function rowFromInbox(r: typeof schema.inboxItems.$inferSelect): FoundEntityRow {
   return {
@@ -110,7 +109,7 @@ function rowFromInbox(r: typeof schema.inboxItems.$inferSelect): FoundEntityRow 
     title: r.title,
     status: r.status,
     file_path: r.file_path,
-    archived: r.archived,
+
     updated_at: r.updated_at,
   };
 }
@@ -122,83 +121,45 @@ export function findEntityByKindAndSlug(
   db: SecondBrainDb,
   kind: ListableEntityKind,
   slug: string,
-  options: { readonly archived: ArchivedFilter },
 ): Result<FoundEntityRow, string> {
   const s = slug.trim();
   if (s.length === 0) {
     return err('Empty slug');
   }
 
-  const mode = options.archived;
-
   switch (kind) {
     case 'area': {
-      const cond =
-        mode === 'either'
-          ? eq(schema.areas.slug, s)
-          : mode === 'active'
-            ? and(eq(schema.areas.slug, s), eq(schema.areas.archived, false))
-            : and(eq(schema.areas.slug, s), eq(schema.areas.archived, true));
+      const cond = eq(schema.areas.slug, s);
       const r = db.select().from(schema.areas).where(cond).get();
       return r ? ok(rowFromArea(r)) : err(`No ${kind} with slug "${s}"`);
     }
     case 'goal': {
-      const cond =
-        mode === 'either'
-          ? eq(schema.goals.slug, s)
-          : mode === 'active'
-            ? and(eq(schema.goals.slug, s), eq(schema.goals.archived, false))
-            : and(eq(schema.goals.slug, s), eq(schema.goals.archived, true));
+      const cond = eq(schema.goals.slug, s);
       const r = db.select().from(schema.goals).where(cond).get();
       return r ? ok(rowFromGoal(r)) : err(`No ${kind} with slug "${s}"`);
     }
     case 'project': {
-      const cond =
-        mode === 'either'
-          ? eq(schema.projects.slug, s)
-          : mode === 'active'
-            ? and(eq(schema.projects.slug, s), eq(schema.projects.archived, false))
-            : and(eq(schema.projects.slug, s), eq(schema.projects.archived, true));
+      const cond = eq(schema.projects.slug, s);
       const r = db.select().from(schema.projects).where(cond).get();
       return r ? ok(rowFromProject(r)) : err(`No ${kind} with slug "${s}"`);
     }
     case 'task': {
-      const cond =
-        mode === 'either'
-          ? eq(schema.tasks.slug, s)
-          : mode === 'active'
-            ? and(eq(schema.tasks.slug, s), eq(schema.tasks.archived, false))
-            : and(eq(schema.tasks.slug, s), eq(schema.tasks.archived, true));
+      const cond = eq(schema.tasks.slug, s);
       const r = db.select().from(schema.tasks).where(cond).get();
       return r ? ok(rowFromTask(r)) : err(`No ${kind} with slug "${s}"`);
     }
     case 'resource': {
-      const cond =
-        mode === 'either'
-          ? eq(schema.resources.slug, s)
-          : mode === 'active'
-            ? and(eq(schema.resources.slug, s), eq(schema.resources.archived, false))
-            : and(eq(schema.resources.slug, s), eq(schema.resources.archived, true));
+      const cond = eq(schema.resources.slug, s);
       const r = db.select().from(schema.resources).where(cond).get();
       return r ? ok(rowFromResource(r)) : err(`No ${kind} with slug "${s}"`);
     }
     case 'note': {
-      const cond =
-        mode === 'either'
-          ? eq(schema.notes.slug, s)
-          : mode === 'active'
-            ? and(eq(schema.notes.slug, s), eq(schema.notes.archived, false))
-            : and(eq(schema.notes.slug, s), eq(schema.notes.archived, true));
+      const cond = eq(schema.notes.slug, s);
       const r = db.select().from(schema.notes).where(cond).get();
       return r ? ok(rowFromNote(r)) : err(`No ${kind} with slug "${s}"`);
     }
     case 'inbox_item': {
-      const cond =
-        mode === 'either'
-          ? eq(schema.inboxItems.slug, s)
-          : mode === 'active'
-            ? and(eq(schema.inboxItems.slug, s), eq(schema.inboxItems.archived, false))
-            : and(eq(schema.inboxItems.slug, s), eq(schema.inboxItems.archived, true));
+      const cond = eq(schema.inboxItems.slug, s);
       const r = db.select().from(schema.inboxItems).where(cond).get();
       return r ? ok(rowFromInbox(r)) : err(`No ${kind} with slug "${s}"`);
     }

@@ -28,9 +28,7 @@ export function upsertDriveItem(
       mime_type: meta.mime_type ?? null,
       sha256: meta.sha256 ?? null,
       child_count: meta.child_count ?? null,
-      archived: meta.archived ?? false,
-      archived_at: meta.archived_at ?? null,
-      archive_reason: meta.archive_reason ?? null,
+
       area_ids_json: jsonOrNull(meta.area_ids),
       project_ids_json: jsonOrNull(meta.project_ids),
       task_ids_json: jsonOrNull(meta.task_ids),
@@ -54,9 +52,7 @@ export function upsertDriveItem(
         mime_type: meta.mime_type ?? null,
         sha256: meta.sha256 ?? null,
         child_count: meta.child_count ?? null,
-        archived: meta.archived ?? false,
-        archived_at: meta.archived_at ?? null,
-        archive_reason: meta.archive_reason ?? null,
+
         area_ids_json: jsonOrNull(meta.area_ids),
         project_ids_json: jsonOrNull(meta.project_ids),
         task_ids_json: jsonOrNull(meta.task_ids),

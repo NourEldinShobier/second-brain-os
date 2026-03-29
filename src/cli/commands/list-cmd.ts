@@ -15,7 +15,7 @@ import { resolveWorkspaceForCli } from '../workspace-resolve.js';
 
 export interface ListCliOptions {
   readonly status?: string;
-  readonly includeArchived?: boolean;
+
   readonly limit?: string;
   readonly due?: string;
 }
@@ -85,13 +85,13 @@ export async function runList(command: Command, entityArg: string | undefined): 
       'Specify what to list, e.g. `second-brain-os list tasks`, `second-brain-os list areas`, or `second-brain-os list inbox`.',
       [
         'Examples: `list tasks --status todo`, `list projects`, `list inbox`.',
-        'Add `--include-archived` to show archived rows.',
+
       ],
     );
     return;
   }
 
-  const includeArchived = opts.includeArchived === true;
+
   const limit = parseLimit(opts.limit, 100);
   const status = opts.status?.trim() || undefined;
   const dueDate = opts.due?.trim() || undefined;
@@ -131,14 +131,14 @@ export async function runList(command: Command, entityArg: string | undefined): 
   const db = openAndMigrate(resolved.value.databaseAbsolutePath);
   const items = listEntitiesInIndex(db, kind, {
     status,
-    includeArchived,
+
     limit,
     dueDate,
   });
 
   const filters = {
     status: status ?? null,
-    include_archived: includeArchived,
+
     limit,
     due: dueDate ?? null,
   };
@@ -155,7 +155,7 @@ export async function runList(command: Command, entityArg: string | undefined): 
       title: r.title,
       status: r.status,
       file_path: r.file_path,
-      archived: r.archived,
+
       updated_at: r.updated_at,
       priority: r.priority,
       do_date: r.do_date,

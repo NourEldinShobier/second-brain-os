@@ -1,0 +1,4 @@
+D:\code\projects\second-brain-os\src\archives.txt
+D:\code\projects\second-brain-os\src\cli\commands\archive-cmd.ts
+D:\code\projects\second-brain-os\src\infrastructure\archive
+D:\code\projects\second-brain-os\src\infrastructure\archive\insert-archive-event.ts

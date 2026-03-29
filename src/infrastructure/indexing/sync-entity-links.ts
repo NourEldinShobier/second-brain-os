@@ -58,9 +58,7 @@ function pushEdges(
 
 /** Sync `entity_links` rows from optional `*_ids` arrays on front matter. */
 export function syncEntityLinksFromMeta(db: SecondBrainDb, meta: SecondBrainMeta, createdAt?: string): void {
-  if (meta.kind === 'archive_record') {
-    return;
-  }
+
   const at = createdAt ?? new Date().toISOString();
   const edges: OutgoingEdge[] = [];
   pushEdges(edges, 'area', meta.area_ids, 'area');

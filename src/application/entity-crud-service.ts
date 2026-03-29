@@ -17,13 +17,13 @@ import { syncEntityLinksFromMeta } from '../infrastructure/indexing/sync-entity-
 import { validateLinkTargetsExist } from '../infrastructure/relationships/validate-link-targets.js';
 import type { ListableEntityKind } from '../domain/listable-kind.js';
 import { buildMetaForReclassify, type ReclassifyTargetKind } from '../domain/organize/reclassify-meta.js';
-import { insertArchiveEvent } from '../infrastructure/archive/insert-archive-event.js';
+
 import { deleteEntityIndexRow } from '../infrastructure/indexing/delete-entity-index-row.js';
 import { rewriteEntityKindInLinks } from '../infrastructure/indexing/rewrite-entity-kind-in-links.js';
 import { replaceOutgoingLinks } from '../infrastructure/indexing/sync-entity-links.js';
 import type { SecondBrainDb } from '../infrastructure/db/open-database.js';
 import { MarkdownWorkspaceRepository } from '../infrastructure/markdown/markdown-repository.js';
-import { findEntityByKindAndSlug } from '../infrastructure/query/find-entity.js';
+import { findEntityByIdOrSlug } from '../infrastructure/query/find-entity.js';
 import type { ParsedMarkdownEntity } from '../infrastructure/markdown/parse-document.js';
 
 function nowIso(): string {
@@ -106,7 +106,6 @@ export class EntityCrudService {
       slug,
       title: input.title,
       status: input.status ?? 'active',
-      archived: false,
     };
     const v = this.validateForWrite(meta);
     if (!v.ok) {
@@ -140,7 +139,6 @@ export class EntityCrudService {
       slug,
       title: input.title,
       status: input.status ?? 'active',
-      archived: false,
       area_ids: [...input.areaIds],
     };
     const v = this.validateForWrite(meta);
@@ -175,7 +173,6 @@ export class EntityCrudService {
       slug,
       title: input.title,
       status: input.status ?? 'active',
-      archived: false,
       area_ids: [...input.areaIds],
     };
     const v = this.validateForWrite(meta);
@@ -214,7 +211,6 @@ export class EntityCrudService {
       slug,
       title: input.title,
       status: input.status ?? 'todo',
-      archived: false,
       ...(input.dueDate !== undefined ? { due_date: input.dueDate } : {}),
       ...(input.priority !== undefined ? { priority: input.priority } : {}),
       ...(input.energy !== undefined ? { energy: input.energy } : {}),
@@ -254,7 +250,6 @@ export class EntityCrudService {
       slug,
       title: input.title,
       status: input.status ?? 'active',
-      archived: false,
       ...(input.notebook !== undefined ? { notebook: input.notebook } : {}),
       ...(input.pinned !== undefined ? { pinned: input.pinned } : {}),
     };
@@ -290,7 +285,6 @@ export class EntityCrudService {
       slug,
       title: input.title,
       status: input.status ?? 'active',
-      archived: false,
       ...(input.sourceUrl !== undefined ? { source_url: input.sourceUrl } : {}),
     };
     const v = this.validateForWrite(meta);
@@ -325,7 +319,6 @@ export class EntityCrudService {
       slug,
       title: input.title,
       status: 'new',
-      archived: false,
       captured_at: nowIso(),
     };
     const v = this.validateForWrite(meta);
@@ -355,9 +348,7 @@ export class EntityCrudService {
       return read;
     }
     const { meta, body } = read.value;
-    if (meta.kind === 'archive_record') {
-      return err('Cannot rename archive records with this command');
-    }
+
     if (meta.kind === 'inbox_item') {
       return err('Inbox items: use `second-brain-os organize promote` or edit the file manually');
     }
@@ -371,7 +362,7 @@ export class EntityCrudService {
       return merged;
     }
     const nextMeta = merged.value;
-    const kind = nextMeta.kind as Exclude<CoreEntityKind, 'archive_record' | 'inbox_item'>;
+    const kind = nextMeta.kind as Exclude<CoreEntityKind, 'inbox_item'>;
     const newRelPath = this.repo.activeEntityPath(kind, nextSlug);
     if (newRelPath !== relativePath) {
       const moved = await this.repo.moveEntityPackage(path.dirname(relativePath), path.dirname(newRelPath));
@@ -414,74 +405,7 @@ export class EntityCrudService {
     return ok(meta);
   }
 
-  /** Move entity into `99-archive/...`, update index, log archive event. */
-  async archiveEntityBySlug(
-    kind: ListableEntityKind,
-    slug: string,
-    options?: { readonly reason?: string | undefined },
-  ): Promise<Result<{ readonly path: string; readonly meta: SecondBrainMeta }, string>> {
-    const found = findEntityByKindAndSlug(this.db, kind, slug, { archived: 'active' });
-    if (!found.ok) {
-      return found;
-    }
-    const prevPath = found.value.file_path;
-    const moved = await this.repo.archiveEntity(prevPath, kind, { reason: options?.reason });
-    if (!moved.ok) {
-      return moved;
-    }
-    const read = await this.repo.readEntity(moved.value.newRelativePath);
-    if (!read.ok) {
-      return read;
-    }
-    const meta = read.value.meta;
-    await this.syncIndex(
-      meta,
-      moved.value.newRelativePath,
-      meta.kind === 'inbox_item' ? { body: read.value.body } : undefined,
-    );
-    insertArchiveEvent(this.db, {
-      entityType: kind,
-      entityId: meta.id,
-      previousPath: prevPath,
-      newPath: moved.value.newRelativePath,
-      reason: options?.reason ?? null,
-    });
-    return ok({ path: moved.value.newRelativePath, meta });
-  }
 
-  /** Move entity from `99-archive/...` back to active storage. */
-  async restoreEntityBySlug(
-    kind: ListableEntityKind,
-    slug: string,
-  ): Promise<Result<{ readonly path: string; readonly meta: SecondBrainMeta }, string>> {
-    const found = findEntityByKindAndSlug(this.db, kind, slug, { archived: 'archived' });
-    if (!found.ok) {
-      return found;
-    }
-    const prevPath = found.value.file_path;
-    const moved = await this.repo.restoreEntity(prevPath);
-    if (!moved.ok) {
-      return moved;
-    }
-    const read = await this.repo.readEntity(moved.value.newRelativePath);
-    if (!read.ok) {
-      return read;
-    }
-    const meta = read.value.meta;
-    await this.syncIndex(
-      meta,
-      moved.value.newRelativePath,
-      meta.kind === 'inbox_item' ? { body: read.value.body } : undefined,
-    );
-    insertArchiveEvent(this.db, {
-      entityType: kind,
-      entityId: meta.id,
-      previousPath: prevPath,
-      newPath: moved.value.newRelativePath,
-      reason: 'restore',
-    });
-    return ok({ path: moved.value.newRelativePath, meta });
-  }
 
   /**
    * Change kind among `note`, `resource`, and `task` while preserving stable id (same slug family).
@@ -496,9 +420,7 @@ export class EntityCrudService {
       return read;
     }
     const { meta, body } = read.value;
-    if (meta.archived) {
-      return err('Reclassify active entities only (restore from archive first if needed).');
-    }
+
     const built = buildMetaForReclassify(meta, toKind, body);
     if (!built.ok) {
       return built;

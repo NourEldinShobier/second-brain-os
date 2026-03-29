@@ -9,12 +9,11 @@ export const ACTIVE_FOLDER_BY_KIND: Record<CoreEntityKind, string> = {
   task: '04-tasks',
   resource: '05-resources',
   note: '06-notes',
-  archive_record: '99-archive',
 };
 
 /** Archive destination folder (under workspace root) when moving from active storage. */
 export const ARCHIVE_FOLDER_BY_KIND: Record<
-  Exclude<CoreEntityKind, 'archive_record'>,
+  CoreEntityKind,
   string
 > = {
   inbox_item: '99-archive/inbox',

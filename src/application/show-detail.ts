@@ -16,14 +16,10 @@ export async function loadShowDetail(
   db: SecondBrainDb,
   repo: MarkdownWorkspaceRepository,
   ref: string,
-  includeArchived: boolean,
 ): Promise<Result<ShowDetail, string>> {
   const found = findEntityByIdOrSlug(db, ref);
   if (!found.ok) {
     return found;
-  }
-  if (!includeArchived && found.value.archived) {
-    return err('Entity is archived. Pass --include-archived to inspect it.');
   }
   const read = await repo.readEntity(found.value.file_path);
   if (!read.ok) {

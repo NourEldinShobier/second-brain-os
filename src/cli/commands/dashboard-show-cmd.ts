@@ -84,7 +84,7 @@ export async function runDashboardShow(command: Command): Promise<void> {
     })),
     recent_notes: dash.recentNotes.map(listedRowJson),
     recent_resources: dash.recentResources.map(listedRowJson),
-    archived_entity_count: dash.archivedEntityCount,
+
     last_weekly_review: dash.lastWeeklyReview,
   };
 
@@ -149,7 +149,7 @@ export async function runDashboardShow(command: Command): Promise<void> {
     for (const r of dash.recentResources) {
       console.log(`- \`${r.slug}\` — ${r.title}`);
     }
-    console.log(`\n### Archive\n\n- **${String(dash.archivedEntityCount)}** archived entities (all kinds)\n`);
+
     console.log('### Weekly review\n');
     if (dash.lastWeeklyReview === null) {
       console.log('- _No weekly review logged yet._\n');
@@ -165,7 +165,7 @@ export async function runDashboardShow(command: Command): Promise<void> {
     for (const w of env.warnings) {
       presentation.warningBlock(ctx, `${w.code}: ${w.message}`);
     }
-    presentation.bodyLine(ctx, `Inbox: ${String(dash.daily.inboxCount)} · Archived (all kinds): ${String(dash.archivedEntityCount)}`);
+    presentation.bodyLine(ctx, `Inbox: ${String(dash.daily.inboxCount)}`);
     presentation.bodyLine(ctx, '');
     presentation.bodyLine(
       ctx,

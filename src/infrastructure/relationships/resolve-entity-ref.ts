@@ -151,25 +151,6 @@ export function resolveDriveLinkTargetRef(
     return idResult;
   }
   const id = idResult.value;
-  const archived =
-    kind === 'area'
-      ? db.select({ archived: schema.areas.archived }).from(schema.areas).where(eq(schema.areas.id, id)).get()?.archived
-      : kind === 'project'
-        ? db
-            .select({ archived: schema.projects.archived })
-            .from(schema.projects)
-            .where(eq(schema.projects.id, id))
-            .get()?.archived
-        : kind === 'task'
-          ? db.select({ archived: schema.tasks.archived }).from(schema.tasks).where(eq(schema.tasks.id, id)).get()
-              ?.archived
-          : kind === 'note'
-            ? db.select({ archived: schema.notes.archived }).from(schema.notes).where(eq(schema.notes.id, id)).get()
-                ?.archived
-            : db.select({ archived: schema.goals.archived }).from(schema.goals).where(eq(schema.goals.id, id)).get()
-                ?.archived;
-  if (archived === true) {
-    return err(`Cannot link to archived ${kind}: ${ref}`);
-  }
+
   return ok(id);
 }

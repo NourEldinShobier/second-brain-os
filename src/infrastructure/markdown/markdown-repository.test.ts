@@ -15,7 +15,7 @@ describe('MarkdownWorkspaceRepository', () => {
       slug: 'demo-task',
       title: 'Demo',
       status: 'next',
-      archived: false,
+
     };
     const rel = repo.activeEntityPath('task', 'demo-task');
     const w = await repo.writeEntity(rel, meta, 'Do the thing.');
@@ -25,15 +25,6 @@ describe('MarkdownWorkspaceRepository', () => {
     if (r.ok) {
       expect(r.value.meta.id).toBe(meta.id);
     }
-    const a = await repo.archiveEntity(rel, 'task');
-    expect(a.ok).toBe(true);
-    if (a.ok) {
-      const ar = await repo.readEntity(a.value.newRelativePath);
-      expect(ar.ok).toBe(true);
-      if (ar.ok) {
-        expect(ar.value.meta.id).toBe(meta.id);
-        expect(ar.value.meta.archived).toBe(true);
-      }
-    }
+
   });
 });

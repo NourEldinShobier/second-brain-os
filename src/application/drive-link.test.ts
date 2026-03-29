@@ -48,7 +48,6 @@ describe('drive link and metadata', () => {
         clearKinds: [],
         dryRun: false,
       },
-      false,
     );
     expect(bad.ok).toBe(false);
 
@@ -62,7 +61,6 @@ describe('drive link and metadata', () => {
         clearKinds: [],
         dryRun: false,
       },
-      false,
     );
     expect(okLink.ok).toBe(true);
     if (!okLink.ok) return;
@@ -101,7 +99,6 @@ describe('drive link and metadata', () => {
         clearKinds: [],
         dryRun: false,
       },
-      false,
     );
     expect(m1.ok).toBe(true);
     if (!m1.ok) return;
@@ -120,7 +117,6 @@ describe('drive link and metadata', () => {
         clearKinds: cleared.value,
         dryRun: false,
       },
-      false,
     );
     expect(m2.ok).toBe(true);
     if (!m2.ok) return;
@@ -136,7 +132,6 @@ describe('drive link and metadata', () => {
         clearKinds: [],
         dryRun: false,
       },
-      false,
     );
     expect(m3.ok).toBe(true);
     if (!m3.ok) return;
