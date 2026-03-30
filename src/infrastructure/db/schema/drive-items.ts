@@ -26,7 +26,14 @@ export const driveItems = sqliteTable(
     note_ids_json: text('note_ids_json'),
     goal_ids_json: text('goal_ids_json'),
     tags_json: text('tags_json'),
+    item_path: text('item_path'),
+    primary_entity_type: text('primary_entity_type'),
+    primary_entity_id: text('primary_entity_id'),
+    primary_entity_slug: text('primary_entity_slug'),
     ...timestamps,
   },
-  (t) => [index('drive_items_slug_idx').on(t.slug), index('drive_items_file_path_idx').on(t.file_path)],
+  (t) => [
+    index('drive_items_slug_idx').on(t.slug),
+    index('drive_items_file_path_idx').on(t.file_path),
+  ],
 );

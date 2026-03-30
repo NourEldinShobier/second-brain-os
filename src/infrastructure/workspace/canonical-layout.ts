@@ -37,6 +37,71 @@ export const DRIVE_ARCHIVE_ROOT = '99-archive/drive' as const;
 export const DRIVE_ITEM_DOCUMENT = 'item.md' as const;
 export const DRIVE_PAYLOAD_DIR = 'files' as const;
 
+/** PARA-aligned drive folders with Johnny.Decimal prefixes for stable sorting. */
+export const DRIVE_AREAS_FOLDER = '010-areas' as const;
+export const DRIVE_PROJECTS_FOLDER = '020-projects' as const;
+export const DRIVE_RESOURCES_FOLDER = '030-resources' as const;
+export const DRIVE_INBOX_FOLDER = '000-inbox' as const;
+
+export const VALID_PRIMARY_TYPES = [
+  'area',
+  'project',
+  'task',
+  'note',
+  'goal',
+  'resource',
+  'inbox',
+] as const;
+export type PrimaryEntityType = (typeof VALID_PRIMARY_TYPES)[number];
+
+export function folderForPrimaryType(type: PrimaryEntityType): string {
+  switch (type) {
+    case 'area':
+      return DRIVE_AREAS_FOLDER;
+    case 'project':
+      return DRIVE_PROJECTS_FOLDER;
+    case 'resource':
+      return DRIVE_RESOURCES_FOLDER;
+    case 'inbox':
+      return DRIVE_INBOX_FOLDER;
+    case 'task':
+    case 'note':
+    case 'goal':
+      throw new Error(`${type} requires hierarchy resolution - use resolveParent first`);
+  }
+}
+
+export function driveItemOrganizedPath(
+  folder: 'area' | 'project' | 'resource' | 'inbox',
+  entitySlug: string | null,
+  itemSlug: string,
+): string {
+  const prefix =
+    folder === 'area'
+      ? DRIVE_AREAS_FOLDER
+      : folder === 'project'
+        ? DRIVE_PROJECTS_FOLDER
+        : folder === 'resource'
+          ? DRIVE_RESOURCES_FOLDER
+          : DRIVE_INBOX_FOLDER;
+  if (folder === 'resource' || folder === 'inbox') {
+    return path.join(DRIVE_ITEMS_ROOT, prefix, itemSlug).replace(/\\/g, '/');
+  }
+  if (entitySlug === null) {
+    throw new Error(`entitySlug required for ${folder} folder type`);
+  }
+  return path.join(DRIVE_ITEMS_ROOT, prefix, entitySlug, itemSlug).replace(/\\/g, '/');
+}
+
+export function isOrganizedPath(filePath: string): boolean {
+  return (
+    filePath.includes(`${DRIVE_AREAS_FOLDER}/`) ||
+    filePath.includes(`${DRIVE_PROJECTS_FOLDER}/`) ||
+    filePath.includes(`${DRIVE_RESOURCES_FOLDER}/`) ||
+    filePath.includes(`${DRIVE_INBOX_FOLDER}/`)
+  );
+}
+
 export function driveItemPackageDir(slug: string): string {
   return path.join(DRIVE_ITEMS_ROOT, slug).replace(/\\/g, '/');
 }

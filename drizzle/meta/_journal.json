@@ -43,6 +43,34 @@
       "when": 1743285600000,
       "tag": "0005_remove_entity_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1743289200000,
+      "tag": "0006_add_item_path",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1743289300000,
+      "tag": "0007_add_primary_entity_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1743289400000,
+      "tag": "0008_add_primary_entity_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1743289500000,
+      "tag": "0009_add_primary_entity_slug",
+      "breakpoints": true
     }
   ]
 }

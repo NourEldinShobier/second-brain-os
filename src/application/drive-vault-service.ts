@@ -1,5 +1,15 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { access, cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import {
+  access,
+  cp,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import type { DriveItemMeta } from '../domain/drive/drive-item-meta.js';
@@ -17,8 +27,12 @@ import {
   type DriveLinkableKind,
   resolveDriveLinkTargetRef,
 } from '../infrastructure/relationships/resolve-entity-ref.js';
-import { parseDriveItemDocument, serializeDriveItem } from '../infrastructure/markdown/parse-drive-item.js';
+import {
+  parseDriveItemDocument,
+  serializeDriveItem,
+} from '../infrastructure/markdown/parse-drive-item.js';
 import { upsertDriveItem } from '../infrastructure/indexing/upsert-drive-item.js';
+import { resolveDriveItemPath } from './drive-path-resolution.js';
 
 function guessMime(filename: string): string {
   const ext = path.extname(filename).toLowerCase();
@@ -76,6 +90,12 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+export type PrimaryTarget =
+  | { type: 'area'; ref: string }
+  | { type: 'project'; ref: string }
+  | { type: 'resource' }
+  | { type: 'inbox' };
+
 export async function importDrivePayload(
   workspaceRoot: string,
   db: SecondBrainDb,
@@ -86,8 +106,11 @@ export async function importDrivePayload(
     readonly move?: boolean;
     readonly dryRun?: boolean;
     readonly tags?: readonly string[];
+    readonly primary?: PrimaryTarget;
   },
-): Promise<Result<{ readonly slug: string; readonly relPath: string; readonly meta: DriveItemMeta }, string>> {
+): Promise<
+  Result<{ readonly slug: string; readonly relPath: string; readonly meta: DriveItemMeta }, string>
+> {
   const root = path.resolve(workspaceRoot);
   const absSource = path.resolve(sourcePath);
   let st;
@@ -110,6 +133,56 @@ export async function importDrivePayload(
   const importedAt = nowIso();
   const originalName = path.basename(absSource);
 
+  let resolvedPrimaryType: 'area' | 'project' | 'resource' | 'inbox' = 'inbox';
+  let entitySlug: string | null = null;
+
+  if (options?.primary) {
+    const primary = options.primary;
+    if (primary.type === 'area' || primary.type === 'project') {
+      const resolution = resolveDriveItemPath(db, {
+        itemSlug: slug,
+        primaryType: primary.type,
+        entityRef: primary.ref,
+      });
+      if (!resolution.ok) {
+        return err(resolution.error);
+      }
+      resolvedPrimaryType = primary.type;
+      entitySlug = resolution.value.entitySlug;
+    } else {
+      resolvedPrimaryType = primary.type;
+    }
+  }
+
+  const primaryMeta =
+    resolvedPrimaryType !== 'inbox'
+      ? {
+          primary_link: {
+            entity_type: resolvedPrimaryType,
+            entity_id: null,
+            entity_slug: entitySlug,
+          },
+        }
+      : {};
+
+  const itemPathSegment =
+    resolvedPrimaryType === 'inbox' || resolvedPrimaryType === 'resource'
+      ? resolvedPrimaryType === 'inbox'
+        ? `000-inbox/${slug}`
+        : `030-resources/${slug}`
+      : resolvedPrimaryType === 'area'
+        ? `010-areas/${entitySlug}/${slug}`
+        : `020-projects/${entitySlug}/${slug}`;
+
+  const itemPathValue =
+    resolvedPrimaryType === 'inbox' || resolvedPrimaryType === 'resource'
+      ? resolvedPrimaryType === 'inbox'
+        ? '000-inbox'
+        : '030-resources'
+      : resolvedPrimaryType === 'area'
+        ? `010-areas/${entitySlug}`
+        : `020-projects/${entitySlug}`;
+
   if (options?.dryRun === true) {
     const meta: DriveItemMeta = {
       id,
@@ -121,18 +194,23 @@ export async function importDrivePayload(
       source_path: absSource,
       imported_at: importedAt,
       ...(options.tags !== undefined && options.tags.length > 0 ? { tags: [...options.tags] } : {}),
+      ...primaryMeta,
+      item_path: itemPathValue,
     };
     return ok({ slug, relPath: driveItemDocumentPath(slug), meta });
   }
 
-  const pkgDir = path.join(root, driveItemPackageDir(slug));
+  const pkgDir = path.join(root, '07-drive/items', itemPathSegment);
   const filesDir = path.join(pkgDir, DRIVE_PAYLOAD_DIR);
   await mkdir(filesDir, { recursive: true });
 
   if (isDir) {
     const entries = await readdir(absSource, { withFileTypes: true });
     for (const e of entries) {
-      await cp(path.join(absSource, e.name), path.join(filesDir, e.name), { recursive: true, force: true });
+      await cp(path.join(absSource, e.name), path.join(filesDir, e.name), {
+        recursive: true,
+        force: true,
+      });
     }
   } else {
     const dest = path.join(filesDir, originalName);
@@ -168,9 +246,14 @@ export async function importDrivePayload(
     sha256: sha,
     ...(isDir ? { child_count: childCount ?? 0 } : {}),
     ...(options?.tags !== undefined && options.tags.length > 0 ? { tags: [...options.tags] } : {}),
+    ...primaryMeta,
+    item_path: itemPathValue,
   };
 
-  const relPath = driveItemDocumentPath(slug);
+  const relPath = driveItemDocumentPath(slug).replace(
+    /^07-drive\/items\/[^/]+/,
+    `07-drive/items/${itemPathSegment}`,
+  );
   const body = options?.description !== undefined ? options.description : '';
   const absDoc = path.join(root, relPath);
   await mkdir(path.dirname(absDoc), { recursive: true });
@@ -191,6 +274,14 @@ export interface DriveListFilters {
   readonly tags?: string[] | undefined;
   /** Standalone (no links). If false, returns all regardless of link state. */
   readonly standalone?: boolean | undefined;
+  /** Show only items in inbox (no primary link). */
+  readonly inbox?: boolean | undefined;
+  /** Filter by primary entity type. Use 'null' for items with no primary. */
+  readonly primaryType?: 'area' | 'project' | 'resource' | 'inbox' | 'null' | undefined;
+  /** Filter by primary entity id (requires primaryType). */
+  readonly primaryEntityId?: string | undefined;
+  /** Filter by primary entity slug (alternative to primaryEntityId). */
+  readonly primaryEntitySlug?: string | undefined;
 }
 
 function jsonArrayHasAny(json: string | null, ids: readonly string[]): boolean {
@@ -223,8 +314,11 @@ function hasNoLinks(row: typeof schema.driveItems.$inferSelect): boolean {
   );
 }
 
-export function listDriveItems(db: SecondBrainDb, filters: DriveListFilters): typeof schema.driveItems.$inferSelect[] {
-  let rows: typeof schema.driveItems.$inferSelect[] = db.select().from(schema.driveItems).all();
+export function listDriveItems(
+  db: SecondBrainDb,
+  filters: DriveListFilters,
+): (typeof schema.driveItems.$inferSelect)[] {
+  let rows: (typeof schema.driveItems.$inferSelect)[] = db.select().from(schema.driveItems).all();
 
   if (
     filters.areaIds === undefined &&
@@ -233,7 +327,9 @@ export function listDriveItems(db: SecondBrainDb, filters: DriveListFilters): ty
     filters.noteIds === undefined &&
     filters.goalIds === undefined &&
     (filters.tags === undefined || filters.tags.length === 0) &&
-    filters.standalone === undefined
+    filters.standalone === undefined &&
+    filters.inbox === undefined &&
+    filters.primaryType === undefined
   ) {
     return rows;
   }
@@ -263,6 +359,26 @@ export function listDriveItems(db: SecondBrainDb, filters: DriveListFilters): ty
     if (filters.standalone === false) {
       if (hasNoLinks(row)) return false;
     }
+    if (filters.inbox === true) {
+      if (row.primary_entity_type !== null && row.primary_entity_type !== 'inbox') {
+        return false;
+      }
+    }
+    if (filters.primaryType === 'null') {
+      if (row.primary_entity_type !== null) return false;
+    }
+    if (
+      filters.primaryType !== undefined &&
+      filters.primaryType !== 'null' &&
+      filters.primaryType !== 'inbox'
+    ) {
+      if (row.primary_entity_type !== filters.primaryType) return false;
+      if (filters.primaryEntityId !== undefined || filters.primaryEntitySlug !== undefined) {
+        const idMatch = row.primary_entity_id === filters.primaryEntityId;
+        const slugMatch = row.primary_entity_slug === filters.primaryEntitySlug;
+        if (!idMatch && !slugMatch) return false;
+      }
+    }
     return true;
   });
 }
@@ -286,7 +402,10 @@ export function findDriveItemByRef(
   return err(`Drive item not found: ${r}`);
 }
 
-export async function loadDriveItemBody(workspaceRoot: string, filePath: string): Promise<Result<string, string>> {
+export async function loadDriveItemBody(
+  workspaceRoot: string,
+  filePath: string,
+): Promise<Result<string, string>> {
   const abs = path.join(workspaceRoot, filePath);
   try {
     const raw = await readFile(abs, 'utf8');
@@ -301,7 +420,9 @@ export async function loadDriveItemBody(workspaceRoot: string, filePath: string)
 }
 
 /** Comma-separated kinds for `drive link --clear` (e.g. `area,project`). */
-export function parseDriveLinkClearKinds(raw: string | undefined): Result<readonly DriveLinkableKind[], string> {
+export function parseDriveLinkClearKinds(
+  raw: string | undefined,
+): Result<readonly DriveLinkableKind[], string> {
   if (raw === undefined || raw.trim() === '') {
     return ok([]);
   }
@@ -542,4 +663,3 @@ export async function updateDriveItemMetadata(
   await writeDriveItemDocument(workspaceRoot, db, relPath, meta, body);
   return ok(meta);
 }
-

@@ -6,6 +6,15 @@ const slugSchema = z
   .max(120)
   .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'slug must be kebab-case');
 
+const primaryLinkSchema = z
+  .object({
+    entity_type: z.enum(['area', 'project', 'task', 'note', 'goal', 'resource', 'inbox']),
+    entity_id: z.uuid().nullable(),
+    entity_slug: z.string().nullable(),
+  })
+  .nullable()
+  .optional();
+
 /** Root `drive_item` object in `item.md` front matter (PRD §8.2). */
 export const driveItemMetaSchema = z.object({
   id: z.uuid(),
@@ -29,6 +38,8 @@ export const driveItemMetaSchema = z.object({
   note_ids: z.array(z.uuid()).optional(),
   goal_ids: z.array(z.uuid()).optional(),
   tags: z.array(z.string()).optional(),
+  primary_link: primaryLinkSchema,
+  item_path: z.string().optional(),
 });
 
 export type DriveItemMeta = z.infer<typeof driveItemMetaSchema>;

@@ -1,5 +1,6 @@
 import type { Command } from 'commander';
 import path from 'node:path';
+import { eq } from 'drizzle-orm';
 import {
   applyDriveItemLinks,
   findDriveItemByRef,
@@ -9,9 +10,12 @@ import {
   parseDriveLinkClearKinds,
   updateDriveItemMetadata,
   type DriveListFilters,
+  type PrimaryTarget,
 } from '../../application/drive-vault-service.js';
 import { closeSecondBrainDatabase, openAndMigrate } from '../../infrastructure/db/open-database.js';
+import * as schema from '../../infrastructure/db/schema.js';
 import { DRIVE_PAYLOAD_DIR } from '../../infrastructure/workspace/canonical-layout.js';
+import { err, ok, type Result } from '../../domain/result.js';
 import { errorEnvelope, successEnvelope } from '../../shared/envelope.js';
 import { ErrorCodes } from '../../shared/error-codes.js';
 import { printJsonEnvelope } from '../../shared/print-envelope.js';
@@ -23,10 +27,31 @@ import { workspaceFailureToErrors } from '../map-workspace-failure.js';
 import * as presentation from '../presentation/blocks.js';
 import { resolveWorkspaceForCli } from '../workspace-resolve.js';
 
+export function parsePrimaryOption(value: string | undefined): PrimaryTarget | undefined {
+  if (!value) {
+    return undefined;
+  }
+  if (value === 'inbox') {
+    return { type: 'inbox' };
+  }
+  if (value === 'resource') {
+    return { type: 'resource' };
+  }
+  const match = value.match(/^(area|project):(.+)$/);
+  if (match) {
+    const type = match[1];
+    const ref = match[2];
+    if (type && ref) {
+      return { type: type as 'area' | 'project', ref };
+    }
+  }
+  return undefined;
+}
+
 export async function runDriveImport(
   command: Command,
   source: string,
-  opts: { title?: string; description?: string; move?: boolean },
+  opts: { title?: string; description?: string; move?: boolean; primary?: string },
 ): Promise<void> {
   const ctx = commandContextFrom(command);
   const resolved = await resolveWorkspaceForCli(ctx);
@@ -42,6 +67,18 @@ export async function runDriveImport(
     else emitQuietFallback(ctx, errors.map((e) => e.message).join('; '));
     return;
   }
+
+  const primaryTarget = parsePrimaryOption(opts.primary);
+  if (opts.primary !== undefined && primaryTarget === undefined) {
+    cliFailed();
+    const msg = `Invalid --primary format: ${opts.primary}. Use area:slug, project:slug, inbox, or resource.`;
+    const env = errorEnvelope([recoverableError(ErrorCodes.VALIDATION, msg)], []);
+    if (isJsonOutput(ctx)) printJsonEnvelope(env);
+    else if (shouldPrintHuman(ctx)) presentation.errorBlock(ctx, msg);
+    else emitQuietFallback(ctx, msg);
+    return;
+  }
+
   const db = openAndMigrate(resolved.value.databaseAbsolutePath);
   try {
     const abs = path.isAbsolute(source) ? source : path.resolve(process.cwd(), source);
@@ -50,6 +87,7 @@ export async function runDriveImport(
       ...(opts.description !== undefined ? { description: opts.description } : {}),
       ...(opts.move === true ? { move: true } : {}),
       ...(ctx.dryRun ? { dryRun: true } : {}),
+      ...(primaryTarget !== undefined ? { primary: primaryTarget } : {}),
     });
     if (!r.ok) {
       cliFailed();
@@ -73,7 +111,10 @@ export async function runDriveImport(
     if (isJsonOutput(ctx)) printJsonEnvelope(env);
     else if (shouldPrintHuman(ctx)) {
       if (ctx.dryRun) {
-        presentation.bodyLine(ctx, `[dry-run] Would import as ${r.value.slug} (${r.value.relPath})`);
+        presentation.bodyLine(
+          ctx,
+          `[dry-run] Would import as ${r.value.slug} (${r.value.relPath})`,
+        );
       } else {
         presentation.bodyLine(ctx, `Imported drive item ${r.value.slug} (${r.value.relPath})`);
       }
@@ -81,6 +122,32 @@ export async function runDriveImport(
   } finally {
     closeSecondBrainDatabase(db);
   }
+}
+
+function parsePrimaryListOption(
+  value: string | undefined,
+): Result<
+  { type: 'null' } | { type: 'area' | 'project' | 'resource' | 'inbox'; entityId?: string },
+  string
+> {
+  if (value === undefined || value === 'null') {
+    return ok({ type: 'null' });
+  }
+  if (value === 'inbox') {
+    return ok({ type: 'inbox' });
+  }
+  if (value === 'resource') {
+    return ok({ type: 'resource' });
+  }
+  const match = value.match(/^(area|project):(.+)$/);
+  if (match) {
+    const entityType = match[1] as 'area' | 'project';
+    const ref = match[2];
+    if (entityType && ref) {
+      return ok({ type: entityType, entityId: ref });
+    }
+  }
+  return err('Invalid --primary format. Use null, inbox, resource, area:slug, or project:slug.');
 }
 
 export async function runDriveList(
@@ -94,6 +161,9 @@ export async function runDriveList(
     goal?: string[];
     tag?: string[];
     standalone?: 'true' | 'false';
+    inbox?: boolean;
+    primary?: string;
+    under?: string;
   },
 ): Promise<void> {
   const ctx = commandContextFrom(command);
@@ -109,17 +179,88 @@ export async function runDriveList(
     else emitQuietFallback(ctx, errors.map((e) => e.message).join('; '));
     return;
   }
+
+  let primaryFilter:
+    | { type: 'null' }
+    | { type: 'area' | 'project' | 'resource' | 'inbox'; entityId?: string }
+    | undefined;
+  const primaryInput = opts.primary ?? opts.under;
+  if (primaryInput !== undefined) {
+    const parsed = parsePrimaryListOption(primaryInput);
+    if (!parsed.ok) {
+      cliFailed();
+      const env = errorEnvelope([recoverableError(ErrorCodes.VALIDATION, parsed.error)], []);
+      if (isJsonOutput(ctx)) printJsonEnvelope(env);
+      else if (shouldPrintHuman(ctx)) presentation.errorBlock(ctx, parsed.error);
+      else emitQuietFallback(ctx, parsed.error);
+      return;
+    }
+    primaryFilter = parsed.value;
+  }
+
   const db = openAndMigrate(resolved.value.databaseAbsolutePath);
   try {
-    const filters: DriveListFilters = {
+    let primaryType: DriveListFilters['primaryType'] = undefined;
+    let primaryEntityId: string | undefined;
+    let primaryEntitySlug: string | undefined;
+    let inbox: boolean | undefined;
 
+    if (primaryFilter !== undefined) {
+      if (primaryFilter.type === 'null') {
+        primaryType = 'null';
+      } else if (primaryFilter.type === 'inbox') {
+        inbox = true;
+      } else {
+        primaryType = primaryFilter.type;
+        if (primaryFilter.entityId !== undefined) {
+          const lookup =
+            primaryFilter.type === 'area'
+              ? db
+                  .select()
+                  .from(schema.areas)
+                  .where(eq(schema.areas.slug, primaryFilter.entityId))
+                  .get()
+              : db
+                  .select()
+                  .from(schema.projects)
+                  .where(eq(schema.projects.slug, primaryFilter.entityId))
+                  .get();
+          if (lookup === undefined) {
+            cliFailed();
+            const msg = `${primaryFilter.type} not found: ${primaryFilter.entityId}`;
+            const env = errorEnvelope([recoverableError(ErrorCodes.VALIDATION, msg)], []);
+            if (isJsonOutput(ctx)) printJsonEnvelope(env);
+            else if (shouldPrintHuman(ctx)) presentation.errorBlock(ctx, msg);
+            else emitQuietFallback(ctx, msg);
+            return;
+          }
+          primaryEntityId = lookup.id;
+          primaryEntitySlug = lookup.slug;
+        }
+      }
+    }
+    if (opts.inbox === true) {
+      inbox = true;
+    }
+
+    const filters: DriveListFilters = {
       areaIds: opts.area !== undefined ? (opts.area.length > 0 ? opts.area : undefined) : undefined,
-      projectIds: opts.project !== undefined ? (opts.project.length > 0 ? opts.project : undefined) : undefined,
+      projectIds:
+        opts.project !== undefined
+          ? opts.project.length > 0
+            ? opts.project
+            : undefined
+          : undefined,
       taskIds: opts.task !== undefined ? (opts.task.length > 0 ? opts.task : undefined) : undefined,
       noteIds: opts.note !== undefined ? (opts.note.length > 0 ? opts.note : undefined) : undefined,
       goalIds: opts.goal !== undefined ? (opts.goal.length > 0 ? opts.goal : undefined) : undefined,
       tags: opts.tag !== undefined ? (opts.tag.length > 0 ? opts.tag : undefined) : undefined,
-      standalone: opts.standalone === 'true' ? true : opts.standalone === 'false' ? false : undefined,
+      standalone:
+        opts.standalone === 'true' ? true : opts.standalone === 'false' ? false : undefined,
+      inbox,
+      primaryType,
+      primaryEntityId,
+      primaryEntitySlug,
     };
     const rows = listDriveItems(db, filters);
     const env = successEnvelope(
@@ -145,7 +286,11 @@ export async function runDriveList(
   }
 }
 
-export async function runDriveShow(command: Command, ref: string, opts: { includeArchived?: boolean }): Promise<void> {
+export async function runDriveShow(
+  command: Command,
+  ref: string,
+  opts: { includeArchived?: boolean },
+): Promise<void> {
   const ctx = commandContextFrom(command);
   const resolved = await resolveWorkspaceForCli(ctx);
   if (!resolved.ok) {
@@ -186,7 +331,9 @@ export async function runDriveShow(command: Command, ref: string, opts: { includ
         ctx,
         `${r.value.title} (${r.value.slug})  ${r.value.item_type}  ${r.value.file_path}`,
       );
-      const payloadRel = path.join(path.dirname(r.value.file_path), DRIVE_PAYLOAD_DIR).replace(/\\/g, '/');
+      const payloadRel = path
+        .join(path.dirname(r.value.file_path), DRIVE_PAYLOAD_DIR)
+        .replace(/\\/g, '/');
       presentation.bodyLine(ctx, `Payload: ${payloadRel}`);
       if (body.ok && body.value.trim().length > 0) {
         presentation.bodyLine(ctx, '');
@@ -197,8 +344,6 @@ export async function runDriveShow(command: Command, ref: string, opts: { includ
     closeSecondBrainDatabase(db);
   }
 }
-
-
 
 export async function runDriveLink(
   command: Command,
@@ -238,23 +383,18 @@ export async function runDriveLink(
   }
   const db = openAndMigrate(resolved.value.databaseAbsolutePath);
   try {
-    const r = await applyDriveItemLinks(
-      resolved.value.workspaceRoot,
-      db,
-      driveRef,
-      {
-        append: {
-          areas: opts.area ?? [],
-          projects: opts.project ?? [],
-          tasks: opts.task ?? [],
-          notes: opts.note ?? [],
-          goals: opts.goal ?? [],
-        },
-        replace: opts.replace === true,
-        clearKinds: cleared.value,
-        dryRun: ctx.dryRun,
+    const r = await applyDriveItemLinks(resolved.value.workspaceRoot, db, driveRef, {
+      append: {
+        areas: opts.area ?? [],
+        projects: opts.project ?? [],
+        tasks: opts.task ?? [],
+        notes: opts.note ?? [],
+        goals: opts.goal ?? [],
       },
-    );
+      replace: opts.replace === true,
+      clearKinds: cleared.value,
+      dryRun: ctx.dryRun,
+    });
     if (!r.ok) {
       cliFailed();
       const env = errorEnvelope([recoverableError(ErrorCodes.VALIDATION, r.error)], []);
@@ -341,13 +481,9 @@ export async function runDriveUpdate(
   }
   const db = openAndMigrate(resolved.value.databaseAbsolutePath);
   try {
-    const r = await updateDriveItemMetadata(
-      resolved.value.workspaceRoot,
-      db,
-      driveRef,
-      patch,
-      { dryRun: ctx.dryRun },
-    );
+    const r = await updateDriveItemMetadata(resolved.value.workspaceRoot, db, driveRef, patch, {
+      dryRun: ctx.dryRun,
+    });
     if (!r.ok) {
       cliFailed();
       const env = errorEnvelope([recoverableError(ErrorCodes.VALIDATION, r.error)], []);

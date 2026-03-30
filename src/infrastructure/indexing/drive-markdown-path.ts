@@ -8,6 +8,11 @@ export function isDriveItemMarkdownPath(relPath: string): boolean {
     return false;
   }
   return (
-    /^07-drive\/items\/[^/]+\/item\.md$/u.test(norm) || /^99-archive\/drive\/[^/]+\/item\.md$/u.test(norm)
+    /^07-drive\/items\/[^/]+\/item\.md$/u.test(norm) ||
+    /^07-drive\/items\/(010-areas|020-projects|030-resources|000-inbox)\/[^/]+\/item\.md$/u.test(
+      norm,
+    ) ||
+    /^07-drive\/items\/(010-areas|020-projects)\/[^/]+\/[^/]+\/item\.md$/u.test(norm) ||
+    /^99-archive\/drive\/[^/]+\/item\.md$/u.test(norm)
   );
 }

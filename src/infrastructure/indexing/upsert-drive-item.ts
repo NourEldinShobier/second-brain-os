@@ -34,7 +34,14 @@ export function upsertDriveItem(
       task_ids_json: jsonOrNull(meta.task_ids),
       note_ids_json: jsonOrNull(meta.note_ids),
       goal_ids_json: jsonOrNull(meta.goal_ids),
-      tags_json: meta.tags !== undefined && meta.tags.length > 0 ? JSON.stringify([...meta.tags]) : null,
+      tags_json:
+        meta.tags !== undefined && meta.tags.length > 0 ? JSON.stringify([...meta.tags]) : null,
+
+      item_path: meta.item_path ?? null,
+      primary_entity_type: meta.primary_link?.entity_type ?? null,
+      primary_entity_id: meta.primary_link?.entity_id ?? null,
+      primary_entity_slug: meta.primary_link?.entity_slug ?? null,
+
       created_at: createdAt,
       updated_at: updatedAt,
     })
@@ -58,7 +65,14 @@ export function upsertDriveItem(
         task_ids_json: jsonOrNull(meta.task_ids),
         note_ids_json: jsonOrNull(meta.note_ids),
         goal_ids_json: jsonOrNull(meta.goal_ids),
-        tags_json: meta.tags !== undefined && meta.tags.length > 0 ? JSON.stringify([...meta.tags]) : null,
+        tags_json:
+          meta.tags !== undefined && meta.tags.length > 0 ? JSON.stringify([...meta.tags]) : null,
+
+        item_path: meta.item_path ?? null,
+        primary_entity_type: meta.primary_link?.entity_type ?? null,
+        primary_entity_id: meta.primary_link?.entity_id ?? null,
+        primary_entity_slug: meta.primary_link?.entity_slug ?? null,
+
         updated_at: updatedAt,
       },
     })

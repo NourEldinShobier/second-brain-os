@@ -11,6 +11,7 @@ import {
 } from '../infrastructure/indexing/delete-entity-index-row.js';
 import { deleteDriveItemById } from '../infrastructure/indexing/upsert-drive-item.js';
 import { reindexWorkspace } from '../infrastructure/indexing/reindex-workspace.js';
+import { parseDriveItemPath, type ParsedDriveItemPath } from './drive-path-resolution.js';
 
 export type DoctorSeverity = 'error' | 'warning' | 'info';
 
@@ -30,15 +31,21 @@ function entityRowExists(db: SecondBrainDb, kind: string, id: string): boolean {
     case 'goal':
       return db.select().from(schema.goals).where(eq(schema.goals.id, id)).get() !== undefined;
     case 'project':
-      return db.select().from(schema.projects).where(eq(schema.projects.id, id)).get() !== undefined;
+      return (
+        db.select().from(schema.projects).where(eq(schema.projects.id, id)).get() !== undefined
+      );
     case 'task':
       return db.select().from(schema.tasks).where(eq(schema.tasks.id, id)).get() !== undefined;
     case 'resource':
-      return db.select().from(schema.resources).where(eq(schema.resources.id, id)).get() !== undefined;
+      return (
+        db.select().from(schema.resources).where(eq(schema.resources.id, id)).get() !== undefined
+      );
     case 'note':
       return db.select().from(schema.notes).where(eq(schema.notes.id, id)).get() !== undefined;
     case 'inbox_item':
-      return db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, id)).get() !== undefined;
+      return (
+        db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, id)).get() !== undefined
+      );
     default:
       return false;
   }
@@ -49,7 +56,10 @@ export function findOrphanIndexRows(workspaceRoot: string, db: SecondBrainDb): D
   const root = path.resolve(workspaceRoot);
   const findings: DoctorFinding[] = [];
 
-  const check = (kindLabel: ListableEntityKind, rows: readonly { id: string; file_path: string }[]) => {
+  const check = (
+    kindLabel: ListableEntityKind,
+    rows: readonly { id: string; file_path: string }[],
+  ) => {
     for (const row of rows) {
       const abs = path.join(root, row.file_path);
       try {
@@ -66,21 +76,42 @@ export function findOrphanIndexRows(workspaceRoot: string, db: SecondBrainDb): D
     }
   };
 
-  check('area', db.select({ id: schema.areas.id, file_path: schema.areas.file_path }).from(schema.areas).all());
-  check('goal', db.select({ id: schema.goals.id, file_path: schema.goals.file_path }).from(schema.goals).all());
+  check(
+    'area',
+    db.select({ id: schema.areas.id, file_path: schema.areas.file_path }).from(schema.areas).all(),
+  );
+  check(
+    'goal',
+    db.select({ id: schema.goals.id, file_path: schema.goals.file_path }).from(schema.goals).all(),
+  );
   check(
     'project',
-    db.select({ id: schema.projects.id, file_path: schema.projects.file_path }).from(schema.projects).all(),
+    db
+      .select({ id: schema.projects.id, file_path: schema.projects.file_path })
+      .from(schema.projects)
+      .all(),
   );
-  check('task', db.select({ id: schema.tasks.id, file_path: schema.tasks.file_path }).from(schema.tasks).all());
+  check(
+    'task',
+    db.select({ id: schema.tasks.id, file_path: schema.tasks.file_path }).from(schema.tasks).all(),
+  );
   check(
     'resource',
-    db.select({ id: schema.resources.id, file_path: schema.resources.file_path }).from(schema.resources).all(),
+    db
+      .select({ id: schema.resources.id, file_path: schema.resources.file_path })
+      .from(schema.resources)
+      .all(),
   );
-  check('note', db.select({ id: schema.notes.id, file_path: schema.notes.file_path }).from(schema.notes).all());
+  check(
+    'note',
+    db.select({ id: schema.notes.id, file_path: schema.notes.file_path }).from(schema.notes).all(),
+  );
   check(
     'inbox_item',
-    db.select({ id: schema.inboxItems.id, file_path: schema.inboxItems.file_path }).from(schema.inboxItems).all(),
+    db
+      .select({ id: schema.inboxItems.id, file_path: schema.inboxItems.file_path })
+      .from(schema.inboxItems)
+      .all(),
   );
 
   const driveRows = db
@@ -169,11 +200,17 @@ export function findBrokenEntityLinks(db: SecondBrainDb): DoctorFinding[] {
 function getEntityFilePath(db: SecondBrainDb, kind: string, id: string): string | undefined {
   switch (kind) {
     case 'area':
-      return db.select({ file_path: schema.areas.file_path }).from(schema.areas).where(eq(schema.areas.id, id)).get()
-        ?.file_path;
+      return db
+        .select({ file_path: schema.areas.file_path })
+        .from(schema.areas)
+        .where(eq(schema.areas.id, id))
+        .get()?.file_path;
     case 'goal':
-      return db.select({ file_path: schema.goals.file_path }).from(schema.goals).where(eq(schema.goals.id, id)).get()
-        ?.file_path;
+      return db
+        .select({ file_path: schema.goals.file_path })
+        .from(schema.goals)
+        .where(eq(schema.goals.id, id))
+        .get()?.file_path;
     case 'project':
       return db
         .select({ file_path: schema.projects.file_path })
@@ -181,8 +218,11 @@ function getEntityFilePath(db: SecondBrainDb, kind: string, id: string): string 
         .where(eq(schema.projects.id, id))
         .get()?.file_path;
     case 'task':
-      return db.select({ file_path: schema.tasks.file_path }).from(schema.tasks).where(eq(schema.tasks.id, id)).get()
-        ?.file_path;
+      return db
+        .select({ file_path: schema.tasks.file_path })
+        .from(schema.tasks)
+        .where(eq(schema.tasks.id, id))
+        .get()?.file_path;
     case 'resource':
       return db
         .select({ file_path: schema.resources.file_path })
@@ -190,8 +230,11 @@ function getEntityFilePath(db: SecondBrainDb, kind: string, id: string): string 
         .where(eq(schema.resources.id, id))
         .get()?.file_path;
     case 'note':
-      return db.select({ file_path: schema.notes.file_path }).from(schema.notes).where(eq(schema.notes.id, id)).get()
-        ?.file_path;
+      return db
+        .select({ file_path: schema.notes.file_path })
+        .from(schema.notes)
+        .where(eq(schema.notes.id, id))
+        .get()?.file_path;
     case 'inbox_item':
       return db
         .select({ file_path: schema.inboxItems.file_path })
@@ -203,10 +246,11 @@ function getEntityFilePath(db: SecondBrainDb, kind: string, id: string): string 
   }
 }
 
-
 function driftToFinding(d: DriftItem): DoctorFinding {
   const severity: DoctorSeverity =
-    d.category === 'duplicate_stable_id' || d.category === 'unreadable_frontmatter' ? 'error' : 'warning';
+    d.category === 'duplicate_stable_id' || d.category === 'unreadable_frontmatter'
+      ? 'error'
+      : 'warning';
   return {
     severity,
     category: d.category,
@@ -226,12 +270,18 @@ export interface DoctorDiagnostics {
 /**
  * Run filesystem scan + SQLite checks: reindex drift, orphan index rows, broken entity_links.
  */
-export async function runDoctorDiagnostics(workspaceRoot: string, db: SecondBrainDb): Promise<DoctorDiagnostics> {
+export async function runDoctorDiagnostics(
+  workspaceRoot: string,
+  db: SecondBrainDb,
+): Promise<DoctorDiagnostics> {
   const reindex = await reindexWorkspace(workspaceRoot, db);
   const findings: DoctorFinding[] = reindex.drift.map(driftToFinding);
 
   findings.push(...findOrphanIndexRows(workspaceRoot, db));
   findings.push(...findBrokenEntityLinks(db));
+  findings.push(...checkDrivePathMismatch(workspaceRoot, db));
+  findings.push(...checkDrivePrimaryEntityMissing(db));
+  findings.push(...checkDriveOrphanInbox(db));
 
   return {
     indexed_files: reindex.indexedFiles,
@@ -258,21 +308,42 @@ export function pruneOrphanIndexRows(workspaceRoot: string, db: SecondBrainDb): 
     }
   };
 
-  prune('area', db.select({ id: schema.areas.id, file_path: schema.areas.file_path }).from(schema.areas).all());
-  prune('goal', db.select({ id: schema.goals.id, file_path: schema.goals.file_path }).from(schema.goals).all());
+  prune(
+    'area',
+    db.select({ id: schema.areas.id, file_path: schema.areas.file_path }).from(schema.areas).all(),
+  );
+  prune(
+    'goal',
+    db.select({ id: schema.goals.id, file_path: schema.goals.file_path }).from(schema.goals).all(),
+  );
   prune(
     'project',
-    db.select({ id: schema.projects.id, file_path: schema.projects.file_path }).from(schema.projects).all(),
+    db
+      .select({ id: schema.projects.id, file_path: schema.projects.file_path })
+      .from(schema.projects)
+      .all(),
   );
-  prune('task', db.select({ id: schema.tasks.id, file_path: schema.tasks.file_path }).from(schema.tasks).all());
+  prune(
+    'task',
+    db.select({ id: schema.tasks.id, file_path: schema.tasks.file_path }).from(schema.tasks).all(),
+  );
   prune(
     'resource',
-    db.select({ id: schema.resources.id, file_path: schema.resources.file_path }).from(schema.resources).all(),
+    db
+      .select({ id: schema.resources.id, file_path: schema.resources.file_path })
+      .from(schema.resources)
+      .all(),
   );
-  prune('note', db.select({ id: schema.notes.id, file_path: schema.notes.file_path }).from(schema.notes).all());
+  prune(
+    'note',
+    db.select({ id: schema.notes.id, file_path: schema.notes.file_path }).from(schema.notes).all(),
+  );
   prune(
     'inbox_item',
-    db.select({ id: schema.inboxItems.id, file_path: schema.inboxItems.file_path }).from(schema.inboxItems).all(),
+    db
+      .select({ id: schema.inboxItems.id, file_path: schema.inboxItems.file_path })
+      .from(schema.inboxItems)
+      .all(),
   );
 
   return removed;
@@ -296,4 +367,230 @@ export function pruneOrphanDriveItemRows(workspaceRoot: string, db: SecondBrainD
     }
   }
   return removed;
+}
+
+function getExpectedItemPath(item: typeof schema.driveItems.$inferSelect): string | null {
+  if (item.primary_entity_type === null) {
+    return '000-inbox';
+  }
+  if (item.primary_entity_type === 'inbox') {
+    return '000-inbox';
+  }
+  if (item.primary_entity_type === 'resource') {
+    return '030-resources';
+  }
+  if (item.primary_entity_type === 'area' && item.primary_entity_slug) {
+    return `010-areas/${item.primary_entity_slug}`;
+  }
+  if (item.primary_entity_type === 'project' && item.primary_entity_slug) {
+    return `020-projects/${item.primary_entity_slug}`;
+  }
+  return null;
+}
+
+function parseActualItemPath(filePath: string): ParsedDriveItemPath | null {
+  const parsed = parseDriveItemPath(filePath);
+  return parsed.ok ? parsed.value : null;
+}
+
+/** Check drive items for path mismatches between item_path column and actual file_path. */
+export function checkDrivePathMismatch(workspaceRoot: string, db: SecondBrainDb): DoctorFinding[] {
+  const findings: DoctorFinding[] = [];
+  const driveRows = db.select().from(schema.driveItems).all();
+
+  for (const item of driveRows) {
+    const actualParsed = parseActualItemPath(item.file_path);
+    const expectedItemPath = item.item_path;
+
+    if (actualParsed === null) {
+      continue;
+    }
+
+    const actualFolder =
+      actualParsed.primaryType === 'area' || actualParsed.primaryType === 'project'
+        ? `${actualParsed.primaryType === 'area' ? '010-areas' : '020-projects'}/${actualParsed.entitySlug}`
+        : actualParsed.primaryType === 'resource'
+          ? '030-resources'
+          : '000-inbox';
+
+    if (expectedItemPath !== null && expectedItemPath !== actualFolder) {
+      findings.push({
+        severity: 'error',
+        category: 'drive_path_mismatch',
+        message: `Drive item '${item.slug}' has item_path '${expectedItemPath}' but actual path is '${actualFolder}'`,
+        id: item.id,
+        detail: {
+          slug: item.slug,
+          expected_item_path: expectedItemPath,
+          actual_item_path: actualFolder,
+          file_path: item.file_path,
+          primary_entity_type: item.primary_entity_type,
+          primary_entity_slug: item.primary_entity_slug,
+        },
+      });
+    }
+  }
+
+  return findings;
+}
+
+/** Check drive items whose primary_entity_id references a non-existent entity. */
+export function checkDrivePrimaryEntityMissing(db: SecondBrainDb): DoctorFinding[] {
+  const findings: DoctorFinding[] = [];
+  const driveRows = db.select().from(schema.driveItems).all();
+
+  for (const item of driveRows) {
+    if (
+      item.primary_entity_type === null ||
+      item.primary_entity_type === 'inbox' ||
+      item.primary_entity_type === 'resource'
+    ) {
+      continue;
+    }
+
+    if (item.primary_entity_type === 'area') {
+      if (item.primary_entity_id) {
+        const area = db
+          .select()
+          .from(schema.areas)
+          .where(eq(schema.areas.id, item.primary_entity_id))
+          .get();
+        if (area === undefined) {
+          findings.push({
+            severity: 'error',
+            category: 'drive_primary_entity_missing',
+            message: `Drive item '${item.slug}' links to non-existent area '${item.primary_entity_id}'`,
+            id: item.id,
+            detail: {
+              slug: item.slug,
+              primary_entity_type: item.primary_entity_type,
+              primary_entity_id: item.primary_entity_id,
+              primary_entity_slug: item.primary_entity_slug,
+            },
+          });
+        }
+      } else if (item.primary_entity_slug) {
+        const area = db
+          .select()
+          .from(schema.areas)
+          .where(eq(schema.areas.slug, item.primary_entity_slug))
+          .get();
+        if (area === undefined) {
+          findings.push({
+            severity: 'error',
+            category: 'drive_primary_entity_missing',
+            message: `Drive item '${item.slug}' links to non-existent area '${item.primary_entity_slug}'`,
+            id: item.id,
+            detail: {
+              slug: item.slug,
+              primary_entity_type: item.primary_entity_type,
+              primary_entity_slug: item.primary_entity_slug,
+            },
+          });
+        }
+      }
+    }
+
+    if (item.primary_entity_type === 'project') {
+      if (item.primary_entity_id) {
+        const project = db
+          .select()
+          .from(schema.projects)
+          .where(eq(schema.projects.id, item.primary_entity_id))
+          .get();
+        if (project === undefined) {
+          findings.push({
+            severity: 'error',
+            category: 'drive_primary_entity_missing',
+            message: `Drive item '${item.slug}' links to non-existent project '${item.primary_entity_id}'`,
+            id: item.id,
+            detail: {
+              slug: item.slug,
+              primary_entity_type: item.primary_entity_type,
+              primary_entity_id: item.primary_entity_id,
+              primary_entity_slug: item.primary_entity_slug,
+            },
+          });
+        }
+      } else if (item.primary_entity_slug) {
+        const project = db
+          .select()
+          .from(schema.projects)
+          .where(eq(schema.projects.slug, item.primary_entity_slug))
+          .get();
+        if (project === undefined) {
+          findings.push({
+            severity: 'error',
+            category: 'drive_primary_entity_missing',
+            message: `Drive item '${item.slug}' links to non-existent project '${item.primary_entity_slug}'`,
+            id: item.id,
+            detail: {
+              slug: item.slug,
+              primary_entity_type: item.primary_entity_type,
+              primary_entity_slug: item.primary_entity_slug,
+            },
+          });
+        }
+      }
+    }
+  }
+
+  return findings;
+}
+
+/** Check for inbox items that have entity links and could be organized. */
+export function checkDriveOrphanInbox(db: SecondBrainDb): DoctorFinding[] {
+  const findings: DoctorFinding[] = [];
+  const driveRows = db.select().from(schema.driveItems).all();
+
+  for (const item of driveRows) {
+    if (item.primary_entity_type !== null && item.primary_entity_type !== 'inbox') {
+      continue;
+    }
+
+    const areaIds: string[] = item.area_ids_json ? JSON.parse(item.area_ids_json) : [];
+    const projectIds: string[] = item.project_ids_json ? JSON.parse(item.project_ids_json) : [];
+
+    if (areaIds.length > 0) {
+      const area = db
+        .select()
+        .from(schema.areas)
+        .where(eq(schema.areas.id, areaIds[0] ?? ''))
+        .get();
+      if (area) {
+        findings.push({
+          severity: 'info',
+          category: 'drive_orphan_inbox',
+          message: `Drive item '${item.slug}' in inbox has link to area '${area.slug}'`,
+          id: item.id,
+          detail: {
+            slug: item.slug,
+            linked_area: area.slug,
+            suggestion: `drive set-primary ${item.slug} --area ${area.slug}`,
+          },
+        });
+      }
+    } else if (projectIds.length > 0) {
+      const project = db
+        .select()
+        .from(schema.projects)
+        .where(eq(schema.projects.id, projectIds[0] ?? ''))
+        .get();
+      if (project) {
+        findings.push({
+          severity: 'info',
+          category: 'drive_orphan_inbox',
+          message: `Drive item '${item.slug}' in inbox has link to project '${project.slug}'`,
+          id: item.id,
+          detail: {
+            slug: item.slug,
+            linked_project: project.slug,
+            suggestion: `drive set-primary ${item.slug} --project ${project.slug}`,
+          },
+        });
+      }
+    }
+  }
+
+  return findings;
 }

@@ -19,6 +19,12 @@ import {
   runDriveShow,
   runDriveUpdate,
 } from './commands/drive-cmd.js';
+import { runDriveSetPrimary } from './commands/drive-set-primary-cmd.js';
+import { runDriveMove } from './commands/drive-move-cmd.js';
+import { runDriveStructure } from './commands/drive-structure-cmd.js';
+import { runDriveMigrate } from './commands/drive-migrate-cmd.js';
+import { runResolveParent, runResolve } from './commands/resolve-cmd.js';
+import { runExists } from './commands/exists-cmd.js';
 import { runDashboardShow } from './commands/dashboard-show-cmd.js';
 import { runSearch } from './commands/search-cmd.js';
 import { runShow } from './commands/show-cmd.js';
@@ -219,10 +225,11 @@ export function createProgram(): Command {
     .option('--title <text>', 'title (default: basename)')
     .option('--description <text>', 'description stored in front matter and body')
     .option('--move', 'remove the source after copy', false)
+    .option('--primary <type:ref>', 'Primary entity (area:slug, project:slug, inbox, or resource)')
     .action(
       async (
         src: string,
-        opts: { title?: string; description?: string; move?: boolean },
+        opts: { title?: string; description?: string; move?: boolean; primary?: string },
         command: Command,
       ) => {
         await runDriveImport(command, src, opts);
@@ -270,6 +277,12 @@ export function createProgram(): Command {
       [] as string[],
     )
     .option('--standalone <bool>', 'filter by standalone status: true or false')
+    .option('--inbox', 'show only items in inbox (no primary link)')
+    .option(
+      '--primary <type:ref>',
+      'filter by primary entity (null, inbox, resource, area:slug, project:slug)',
+    )
+    .option('--under <type:ref>', 'alias for --primary (area:slug, project:slug)')
     .action(
       async (
         opts: {
@@ -281,6 +294,9 @@ export function createProgram(): Command {
           goal?: string[];
           tag?: string[];
           standalone?: 'true' | 'false';
+          inbox?: boolean;
+          primary?: string;
+          under?: string;
         },
         command: Command,
       ) => {
@@ -382,6 +398,84 @@ export function createProgram(): Command {
         await runDriveUpdate(command, driveRef, opts);
       },
     );
+
+  driveCmd
+    .command('set-primary')
+    .description('Set primary link and move drive item to organized location')
+    .argument('<drive-ref>', 'drive item slug or id')
+    .option('--area <slug>', 'Set primary to an area')
+    .option('--project <slug>', 'Set primary to a project')
+    .option('--inbox', 'Move to inbox (no primary)')
+    .option('--resource', 'Move to resources (no entity link)')
+    .action(
+      async (
+        driveRef: string,
+        opts: { area?: string; project?: string; inbox?: boolean; resource?: boolean },
+        command: Command,
+      ) => {
+        await runDriveSetPrimary(command, driveRef, opts);
+      },
+    );
+
+  driveCmd
+    .command('move')
+    .description('Rename a drive item (change slug)')
+    .argument('<drive-ref>', 'drive item slug or id')
+    .requiredOption('--slug <new-slug>', 'New slug for the drive item')
+    .option('--dry-run', 'Preview changes without executing')
+    .action(
+      async (driveRef: string, opts: { slug: string; dryRun?: boolean }, command: Command) => {
+        await runDriveMove(command, driveRef, opts);
+      },
+    );
+
+  driveCmd
+    .command('structure')
+    .description('Show current drive folder structure')
+    .option('--json', 'Output as JSON')
+    .action(async (_options: unknown, command: Command) => {
+      await runDriveStructure(command);
+    });
+
+  driveCmd
+    .command('migrate')
+    .description('Migrate existing drive items to organized folders')
+    .option('--strategy <strategy>', 'Migration strategy: inbox or first-link', 'inbox')
+    .option('--dry-run', 'Preview changes without executing', false)
+    .option('--limit <n>', 'Limit number of items to migrate', (value: string) =>
+      parseInt(value, 10),
+    )
+    .action(
+      async (opts: { strategy?: string; dryRun?: boolean; limit?: string }, command: Command) => {
+        await runDriveMigrate(command, opts);
+      },
+    );
+
+  const resolveCmd = program.command('resolve').description('Resolve entity references');
+
+  resolveCmd
+    .command('parent')
+    .description('Resolve parent entity for placement decisions')
+    .option('--task <ref>', 'Task slug or ID')
+    .option('--note <ref>', 'Note slug or ID')
+    .option('--goal <ref>', 'Goal slug or ID')
+    .action(async (opts: { task?: string; note?: string; goal?: string }, command: Command) => {
+      await runResolveParent(command, opts);
+    });
+
+  resolveCmd
+    .command('entity <entity-type> <ref>')
+    .description('Resolve entity slug or ID to full details')
+    .action(async (entityType: string, ref: string, _opts: unknown, command: Command) => {
+      await runResolve(command, entityType, ref);
+    });
+
+  program
+    .command('exists <entity-type> <ref>')
+    .description('Check if an entity exists')
+    .action(async (entityType: string, ref: string, _opts: unknown, command: Command) => {
+      await runExists(command, entityType, ref);
+    });
 
   program
     .command('doctor')

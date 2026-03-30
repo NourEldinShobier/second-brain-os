@@ -12,9 +12,11 @@ describe('createProgram', () => {
         'dashboard',
         'doctor',
         'drive',
+        'exists',
         'init',
         'list',
         'organize',
+        'resolve',
         'search',
         'show',
         'today',
@@ -46,15 +48,25 @@ describe('createProgram', () => {
     ]);
   });
 
-  it('nests drive import, list, show, link, update under drive', () => {
+  it('nests drive import, list, show, link, update, set-primary, move, structure, migrate under drive', () => {
     const program = createProgram();
     const drive = program.commands.find((c) => c.name() === 'drive');
     expect(drive?.commands.map((c) => c.name()).sort()).toEqual([
       'import',
       'link',
       'list',
+      'migrate',
+      'move',
+      'set-primary',
       'show',
+      'structure',
       'update',
     ]);
+  });
+
+  it('nests parent and entity under resolve', () => {
+    const program = createProgram();
+    const resolveCmd = program.commands.find((c) => c.name() === 'resolve');
+    expect(resolveCmd?.commands.map((c) => c.name()).sort()).toEqual(['entity', 'parent']);
   });
 });

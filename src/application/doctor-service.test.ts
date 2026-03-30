@@ -40,8 +40,8 @@ describe('doctor service (drive)', () => {
     expect(imp.ok).toBe(true);
     if (!imp.ok) return;
 
-    // Remove the files/ directory
-    const pkgDir = path.join(root, '07-drive/items', imp.value.slug, 'files');
+    // Remove the files/ directory - default import is now to 000-inbox
+    const pkgDir = path.join(root, '07-drive/items/000-inbox', imp.value.slug, 'files');
     await rm(pkgDir, { recursive: true });
 
     const findings = findOrphanIndexRows(root, db);

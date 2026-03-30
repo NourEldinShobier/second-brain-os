@@ -136,12 +136,27 @@ second-brain-os
 │
 ├── drive
 │   ├── import <path>               Import file/folder into drive
+│   ├── import <path> --primary <link>  Import with primary link
 │   ├── list                        List drive items
+│   ├── list --inbox                List unsorted items (no primary link)
+│   ├── list --primary <entity>     List items by primary entity
 │   ├── show <ref>                  Show a drive item
+│   ├── set-primary <ref> --area <slug>  Set primary location (moves dir)
+│   ├── move <ref> --slug <new-slug> Rename/move drive item
+│   ├── structure                   Show drive folder structure
+│   ├── migrate                     Migrate flat items to PARA folders
 │   ├── link <drive_ref>            Link drive item to entities
 │   ├── update <drive_ref>          Update drive item metadata
 │   ├── archive <slug>              Archive drive item
 │   └── restore <slug>              Restore archived drive item
+│
+├── resolve
+│   ├── parent --task <ref>         Resolve task's parent for drive path
+│   ├── parent --note <ref>         Resolve note's parent for drive path
+│   ├── parent --goal <ref>         Resolve goal's parent for drive path
+│   └── entity <type> <ref>         Resolve entity details
+│
+├── exists <type> <ref>             Check if entity exists (returns bool)
 │
 ├── doctor                          Validate + optionally repair vault
 │
@@ -631,13 +646,19 @@ The drive is a vault area (`07-drive/`) for importing and organizing external fi
 
 ### `drive import`
 
-Import a file or folder into `07-drive/items/` as a new drive item package.
+Import a file or folder into the vault drive. By default imports to `000-inbox/`. Use `--primary` to place directly in a PARA folder.
 
 ```bash
 sb drive import ./Project-Brief.pdf
 sb drive import ./design-assets/ --title "Q1 Design Assets" --description "Figma exports"
 sb drive import ./report.pdf --title "Annual Report" --move    # removes source
 sb drive import ./data.csv --dry-run                           # preview only
+
+# Import with primary location (skips inbox)
+sb drive import ./health-report.pdf --primary area:health      # → 010-areas/health/
+sb drive import ./design.fig --primary project:website-redesign # → 020-projects/website-redesign/
+sb drive import ./reference.pdf --primary resource             # → 030-resources/
+sb drive import ./temp.txt --primary inbox                     # → 000-inbox/ (explicit)
 ```
 
 **Arguments:**
@@ -648,11 +669,12 @@ sb drive import ./data.csv --dry-run                           # preview only
 
 **Flags:**
 
-| Flag                   | Description                         |
-| ---------------------- | ----------------------------------- |
-| `--title <text>`       | Title (defaults to source basename) |
-| `--description <text>` | Description stored in front matter  |
-| `--move`               | Remove the source after copying     |
+| Flag                   | Description                                                               |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `--title <text>`       | Title (defaults to source basename)                                       |
+| `--description <text>` | Description stored in front matter                                        |
+| `--move`               | Remove the source after copying                                           |
+| `--primary <link>`     | Primary location: `area:<slug>`, `project:<slug>`, `resource`, or `inbox` |
 
 ---
 
@@ -668,20 +690,30 @@ sb drive list --tag planning --tag q1
 sb drive list --standalone true           # items with no entity links
 sb drive list --include-archived
 sb drive list --format json
+
+# Primary link filters (Drive Organization)
+sb drive list --inbox                      # Items without primary link (unsorted)
+sb drive list --primary null               # Same as --inbox
+sb drive list --primary area:health        # Items primarily in health area
+sb drive list --primary project:my-app     # Items primarily in my-app project
+sb drive list --under area:health          # Alias for --primary area:health
 ```
 
 **Flags:**
 
-| Flag                  | Description                            |
-| --------------------- | -------------------------------------- |
-| `--include-archived`  | Include archived drive items           |
-| `--area <ref>`        | Filter by area id/slug (repeatable)    |
-| `--project <ref>`     | Filter by project id/slug (repeatable) |
-| `--task <ref>`        | Filter by task id/slug (repeatable)    |
-| `--note <ref>`        | Filter by note id/slug (repeatable)    |
-| `--goal <ref>`        | Filter by goal id/slug (repeatable)    |
-| `--tag <tag>`         | Filter by tag (repeatable)             |
-| `--standalone <bool>` | `true` = no links; `false` = has links |
+| Flag                  | Description                                                       |
+| --------------------- | ----------------------------------------------------------------- |
+| `--include-archived`  | Include archived drive items                                      |
+| `--area <ref>`        | Filter by area id/slug (repeatable)                               |
+| `--project <ref>`     | Filter by project id/slug (repeatable)                            |
+| `--task <ref>`        | Filter by task id/slug (repeatable)                               |
+| `--note <ref>`        | Filter by note id/slug (repeatable)                               |
+| `--goal <ref>`        | Filter by goal id/slug (repeatable)                               |
+| `--tag <tag>`         | Filter by tag (repeatable)                                        |
+| `--standalone <bool>` | `true` = no links; `false` = has links                            |
+| `--inbox`             | Show items without primary link (unsorted)                        |
+| `--primary <ref>`     | Filter by primary entity: `null`, `area:<slug>`, `project:<slug>` |
+| `--under <ref>`       | Alias for `--primary` (more intuitive for browsing)               |
 
 ---
 
@@ -694,6 +726,124 @@ sb drive show my-project-brief
 sb drive show 550e8400-e29b-41d4-a716-446655440000  # by UUID
 sb drive show archived-doc --include-archived
 ```
+
+---
+
+### `drive set-primary`
+
+Set the primary link for a drive item, moving it to the appropriate PARA folder. This physically moves the drive item directory to reflect its organizational context.
+
+```bash
+# Move to an area folder
+sb drive set-primary my-file --area health
+sb drive set-primary my-file --area work
+
+# Move to a project folder
+sb drive set-primary my-file --project website-redesign
+sb drive set-primary my-file --project q1-report
+
+# Move to resources folder
+sb drive set-primary my-file --resource
+
+# Move to inbox (unsorted)
+sb drive set-primary my-file --inbox
+
+# Preview without moving
+sb drive set-primary my-file --area health --dry-run
+```
+
+**Arguments:**
+
+| Argument | Description             |
+| -------- | ----------------------- |
+| `<ref>`  | Drive item slug or UUID |
+
+**Flags (exactly one required):**
+
+| Flag               | Description                                     |
+| ------------------ | ----------------------------------------------- |
+| `--area <slug>`    | Link to area, move to `010-areas/<slug>/`       |
+| `--project <slug>` | Link to project, move to `020-projects/<slug>/` |
+| `--resource`       | Move to `030-resources/`                        |
+| `--inbox`          | Move to `000-inbox/`                            |
+| `--dry-run`        | Preview move without executing                  |
+
+---
+
+### `drive move`
+
+Rename a drive item's slug, which renames its directory. Preserves primary link and all other metadata.
+
+```bash
+sb drive move my-old-slug --slug my-new-slug
+sb drive move my-file --slug better-name --dry-run
+```
+
+**Arguments:**
+
+| Argument | Description             |
+| -------- | ----------------------- |
+| `<ref>`  | Drive item slug or UUID |
+
+**Flags:**
+
+| Flag            | Description                      |
+| --------------- | -------------------------------- |
+| `--slug <slug>` | New slug (directory name)        |
+| `--dry-run`     | Preview rename without executing |
+
+---
+
+### `drive structure`
+
+Show the current drive folder structure with item counts. Useful for browsing and understanding organization.
+
+```bash
+sb drive structure
+sb drive structure --format json
+```
+
+**JSON Output:**
+
+```json
+{
+  "folders": [
+    { "path": "000-inbox", "name": "Inbox", "count": 5 },
+    { "path": "010-areas/health", "name": "Health & Fitness", "count": 3 },
+    { "path": "020-projects/website-redesign", "name": "Website Redesign", "count": 2 }
+  ],
+  "unsorted_count": 5,
+  "total_drive_items": 10
+}
+```
+
+---
+
+### `drive migrate`
+
+Migrate existing flat drive items (from `07-drive/items/`) to the new PARA-organized structure.
+
+```bash
+# Move all flat items to inbox (conservative)
+sb drive migrate --strategy inbox
+
+# Use first entity link as primary (if any)
+sb drive migrate --strategy first-link
+
+# Preview without migrating
+sb drive migrate --strategy inbox --dry-run
+
+# Migrate only first 10 items
+sb drive migrate --strategy inbox --limit 10
+```
+
+**Flags:**
+
+| Flag                    | Description                                                  |
+| ----------------------- | ------------------------------------------------------------ |
+| `--strategy <strategy>` | `inbox` (move all to inbox) or `first-link` (use first link) |
+| `--limit <n>`           | Only migrate first N items                                   |
+| `--dry-run`             | Show migration plan without executing                        |
 
 ---
 
@@ -785,6 +935,108 @@ sb drive restore my-project-brief
 
 ---
 
+## Utility Commands
+
+### `exists`
+
+Check if an entity exists. Returns a simple boolean — useful for scripts and agents.
+
+```bash
+sb exists area health
+sb exists project website-redesign
+sb exists task write-report
+sb exists note meeting-2026-03-15
+sb exists goal get-fit
+
+# Check by UUID
+sb exists area 550e8400-e29b-41d4-a716-446655440000
+
+# JSON output for automation
+sb exists area health --format json
+```
+
+**Arguments:**
+
+| Argument | Description                                            |
+| -------- | ------------------------------------------------------ |
+| `<type>` | Entity type: `area`, `goal`, `project`, `task`, `note` |
+| `<ref>`  | Entity slug or UUID                                    |
+
+**Output:**
+
+- Human: prints `true` or `false`
+- JSON: `{ "exists": true }` or `{ "exists": false }`
+
+---
+
+### `resolve`
+
+Resolve entity relationships and hierarchy. Useful for AI agents making decisions about where to place drive items.
+
+#### `resolve parent`
+
+Find the parent entity for a task, note, or goal to determine appropriate drive folder placement.
+
+```bash
+# Resolve a task's parent (returns Project or Area)
+sb resolve parent --task write-report
+sb resolve parent --task 550e8400-e29b-41d4-a716-446655440000 --format json
+
+# Resolve a note's parent
+sb resolve parent --note meeting-notes
+
+# Resolve a goal's parent (returns Area)
+sb resolve parent --goal get-fit
+```
+
+**Output (JSON):**
+
+```json
+{
+  "entity": {
+    "type": "task",
+    "id": "task-uuid",
+    "slug": "write-report",
+    "title": "Write Q1 Report"
+  },
+  "parent": {
+    "type": "project",
+    "id": "project-uuid",
+    "slug": "q1-report",
+    "title": "Q1 Report Project"
+  },
+  "suggested_path": "020-projects/q1-report/write-report",
+  "suggested_primary": {
+    "type": "project",
+    "slug": "q1-report"
+  },
+  "ancestors": [
+    { "type": "project", "slug": "q1-report", "title": "Q1 Report Project" },
+    { "type": "area", "slug": "work", "title": "Work" }
+  ],
+  "reason": "Task links to project 'q1-report' which links to area 'work'"
+}
+```
+
+#### `resolve entity`
+
+Resolve any entity type to its full details including child counts.
+
+```bash
+sb resolve entity area health
+sb resolve entity project website-redesign --format json
+sb resolve entity task write-report
+```
+
+**Arguments:**
+
+| Argument | Description                                            |
+| -------- | ------------------------------------------------------ |
+| `<type>` | Entity type: `area`, `goal`, `project`, `task`, `note` |
+| `<ref>`  | Entity slug or UUID                                    |
+
+---
+
 ## Health Commands
 
 ### `doctor`
@@ -829,6 +1081,9 @@ sb doctor --repair --format json
 - File paths in DB match actual disk paths
 - Frontmatter IDs match DB IDs
 - No orphaned `entity_links` rows
+- **Drive items:** `item_path` matches actual disk location
+- **Drive items:** Primary entity reference exists and is valid
+- **Drive items:** Items in inbox have no primary link (or warning if they do)
 
 ---
 
